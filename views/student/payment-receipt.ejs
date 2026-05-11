@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Payment Receipt — <%= payment.receipt_no %></title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#e0e0e0;color:#222}
+    .page-wrapper{width:210mm;margin:20px auto;background:#fff;border:1px solid #ccc}
+    .receipt{width:100%;height:148.5mm;border:2px solid #4A0E8F;overflow:hidden;display:flex;flex-direction:column;position:relative}
+    .receipt+.receipt{border-top:3px dashed #4A0E8F}
+    .receipt-header{background:#fff;padding:8px 14px 6px;border-bottom:2px solid #4A0E8F;display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .receipt-header img{width:52px;height:52px;object-fit:contain}
+    .receipt-header-text{flex:1;text-align:center}
+    .receipt-header h1{font-size:15px;font-weight:800;color:#4A0E8F;letter-spacing:.5px}
+    .receipt-header h2{font-size:9.5px;color:#333;font-weight:600;margin-top:1px}
+    .receipt-header p{font-size:8.5px;color:#555;margin-top:1px;line-height:1.4}
+    .receipt-title-bar{background:#4A0E8F;color:#fff;text-align:center;padding:4px 8px;font-size:11px;font-weight:700;letter-spacing:3px;flex-shrink:0}
+    .pending-bar{background:#ff9800;color:#fff;text-align:center;padding:3px;font-size:9px;font-weight:700;letter-spacing:1px}
+    .receipt-body{padding:8px 14px 6px;flex:1;display:flex;flex-direction:column}
+    .receipt-meta{display:flex;justify-content:space-between;font-size:10px;border-bottom:1px dashed #ccc;padding-bottom:5px;margin-bottom:6px}
+    .receipt-meta span{font-weight:700;color:#4A0E8F}
+    .info-table{width:100%;border-collapse:collapse;margin-bottom:6px;font-size:10px}
+    .info-table td{padding:3px 6px;border:1px solid #e0e0e0}
+    .info-table td:first-child{background:#f7f3ff;font-weight:600;color:#4A0E8F;width:33%}
+    .fee-detail-table{width:100%;border-collapse:collapse;font-size:9px;margin-bottom:5px}
+    .fee-detail-table th{background:#f0e6ff;color:#4A0E8F;padding:2px 5px;text-align:left;font-weight:700}
+    .fee-detail-table td{padding:2px 5px;border-bottom:1px solid #f0e6ff}
+    .amount-row{display:flex;align-items:center;justify-content:space-between;background:#f7f3ff;border:1.5px solid #4A0E8F;border-radius:5px;padding:5px 10px;margin-bottom:4px}
+    .amount-label{font-size:10px;color:#555}
+    .amount-value{font-size:20px;font-weight:800;color:#4A0E8F}
+    .pending-badge{background:#ff9800;color:#fff;padding:2px 10px;border-radius:12px;font-size:9px;font-weight:700}
+    .receipt-footer{display:flex;justify-content:space-between;align-items:flex-end;border-top:1px dashed #ccc;padding-top:5px;margin-top:auto;font-size:9px;color:#888}
+    .sig-block{text-align:center}
+    .sig-line{border-top:1px solid #aaa;width:100px;margin:16px auto 2px}
+    .watermark{text-align:center;font-size:8px;color:#bbb;margin-top:3px}
+    .print-actions{text-align:center;padding:14px;background:#f5f5f5;display:flex;gap:10px;justify-content:center}
+    .btn-print{background:#4A0E8F;color:#fff;border:none;padding:10px 28px;border-radius:6px;font-size:14px;cursor:pointer;font-weight:600}
+    .btn-close{background:#fff;color:#4A0E8F;border:2px solid #4A0E8F;padding:10px 24px;border-radius:6px;font-size:14px;cursor:pointer;font-weight:600}
+    .btn-dashboard{background:#e8f5e9;color:#2e7d32;border:2px solid #a5d6a7;padding:10px 24px;border-radius:6px;font-size:14px;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block}
+    @media print{
+      @page{size:A4 portrait;margin:0}
+      body{background:#fff}
+      .print-actions{display:none}
+      .page-wrapper{margin:0;border:none;width:210mm}
+      .receipt{border-left:none;border-right:none}
+    }
+  </style>
+</head>
+<body>
+
+<%
+  let feeLines = [];
+  try { feeLines = typeof feeDetails === 'string' ? JSON.parse(feeDetails) : feeDetails; } catch(e){}
+  const payDate = payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  const isPending = payment.status === 'Pending';
+%>
+
+<div class="page-wrapper">
+  <!-- SCHOOL COPY -->
+  <div class="receipt">
+    <div class="receipt-header">
+      <img src="/img/logo.png" alt="JBM">
+      <div class="receipt-header-text">
+        <h1>JBM PUBLIC SCHOOL</h1>
+        <h2>RZ 666/1, 3&4 Nasirpur Road, Sadh Nagar, Palam, New Delhi - 110045</h2>
+        <p>Ph: 9868631661 | 9891251352 &nbsp;|&nbsp; jbmpschool@gmail.com &nbsp;|&nbsp; www.jbmpschool.com</p>
+        <p>CBSE Affiliation No: <strong>2730708</strong> &nbsp;|&nbsp; School ID: <strong>1821201</strong></p>
+      </div>
+    </div>
+    <div class="receipt-title-bar">ONLINE FEE RECEIPT &nbsp;—&nbsp; SCHOOL COPY</div>
+    <% if(isPending){ %><div class="pending-bar">⏳ PENDING VERIFICATION — UTR: <%= payment.utr_no %></div><% } %>
+    <div class="receipt-body">
+      <div class="receipt-meta">
+        <div>Receipt No: <span><%= payment.receipt_no %></span></div>
+        <div>Date: <span><%= payDate %></span></div>
+      </div>
+      <table class="info-table">
+        <tr><td>Student Name</td><td><strong><%= payment.first_name %> <%= payment.last_name %></strong></td></tr>
+        <tr><td>Admission No.</td><td><%= payment.admission_no %></td></tr>
+        <tr><td>Class / Section</td><td><%= payment.class_name %> - <%= payment.section %></td></tr>
+        <% if(payment.father_name){%><tr><td>Father's Name</td><td><%= payment.father_name %> <%= payment.father_last||'' %></td></tr><%}%>
+        <tr><td>UTR / Txn ID</td><td style="font-family:monospace;font-weight:700"><%= payment.utr_no %></td></tr>
+        <tr><td>Payment Mode</td><td>UPI / Online</td></tr>
+      </table>
+      <% if(feeLines && feeLines.length){ %>
+      <table class="fee-detail-table">
+        <thead><tr><th>Fee Head</th><th>Month/Period</th><th style="text-align:right">Amount</th></tr></thead>
+        <tbody>
+          <% feeLines.forEach(fl=>{ %>
+          <tr>
+            <td><%= fl.head %></td>
+            <td><%= fl.type==='Annual'?'Annual 2026-27':(fl.month+' '+fl.year) %></td>
+            <td style="text-align:right">₹<%= Number(fl.amount).toLocaleString('en-IN') %></td>
+          </tr>
+          <% }) %>
+          <% if(payment.late_fee > 0){ %>
+          <tr style="color:#e65100">
+            <td>Late Fee</td><td>—</td>
+            <td style="text-align:right">₹<%= Number(payment.late_fee).toLocaleString('en-IN') %></td>
+          </tr>
+          <% } %>
+        </tbody>
+      </table>
+      <% } %>
+      <div class="amount-row">
+        <div><div class="amount-label">Total Amount Paid</div><div class="amount-value">₹<%= Number(payment.total_amount).toLocaleString('en-IN') %></div></div>
+        <% if(isPending){ %><span class="pending-badge">⏳ PENDING</span><% } else { %><span style="background:#4caf50;color:#fff;padding:2px 10px;border-radius:12px;font-size:9px;font-weight:700">✅ VERIFIED</span><% } %>
+      </div>
+      <div class="receipt-footer">
+        <div><div>Online Portal Payment</div><div style="margin-top:2px">Generated: <%= new Date().toLocaleDateString('en-IN') %></div></div>
+        <div style="font-size:8.5px;color:#999;text-align:center">Subject to verification by school office</div>
+        <div class="sig-block"><div class="sig-line"></div><div>Authorized Signatory</div></div>
+      </div>
+      <div class="watermark">Computer generated receipt | This is a payment request record</div>
+    </div>
+  </div>
+
+  <!-- STUDENT COPY -->
+  <div class="receipt">
+    <div class="receipt-header">
+      <img src="/img/logo.png" alt="JBM">
+      <div class="receipt-header-text">
+        <h1>JBM PUBLIC SCHOOL</h1>
+        <h2>RZ 666/1, 3&4 Nasirpur Road, Sadh Nagar, Palam, New Delhi - 110045</h2>
+        <p>Ph: 9868631661 | 9891251352 &nbsp;|&nbsp; jbmpschool@gmail.com &nbsp;|&nbsp; www.jbmpschool.com</p>
+        <p>CBSE Affiliation No: <strong>2730708</strong> &nbsp;|&nbsp; School ID: <strong>1821201</strong></p>
+      </div>
+    </div>
+    <div class="receipt-title-bar">ONLINE FEE RECEIPT &nbsp;—&nbsp; STUDENT COPY</div>
+    <% if(isPending){ %><div class="pending-bar">⏳ PENDING VERIFICATION — Keep this receipt until verified</div><% } %>
+    <div class="receipt-body">
+      <div class="receipt-meta">
+        <div>Receipt No: <span><%= payment.receipt_no %></span></div>
+        <div>Date: <span><%= payDate %></span></div>
+      </div>
+      <table class="info-table">
+        <tr><td>Student Name</td><td><strong><%= payment.first_name %> <%= payment.last_name %></strong></td></tr>
+        <tr><td>Admission No.</td><td><%= payment.admission_no %></td></tr>
+        <tr><td>Class / Section</td><td><%= payment.class_name %> - <%= payment.section %></td></tr>
+        <% if(payment.father_name){%><tr><td>Father's Name</td><td><%= payment.father_name %> <%= payment.father_last||'' %></td></tr><%}%>
+        <tr><td>UTR / Txn ID</td><td style="font-family:monospace;font-weight:700"><%= payment.utr_no %></td></tr>
+        <tr><td>Payment Mode</td><td>UPI / Online</td></tr>
+      </table>
+      <% if(feeLines && feeLines.length){ %>
+      <table class="fee-detail-table">
+        <thead><tr><th>Fee Head</th><th>Month/Period</th><th style="text-align:right">Amount</th></tr></thead>
+        <tbody>
+          <% feeLines.forEach(fl=>{ %>
+          <tr>
+            <td><%= fl.head %></td>
+            <td><%= fl.type==='Annual'?'Annual 2026-27':(fl.month+' '+fl.year) %></td>
+            <td style="text-align:right">₹<%= Number(fl.amount).toLocaleString('en-IN') %></td>
+          </tr>
+          <% }) %>
+          <% if(payment.late_fee > 0){ %>
+          <tr style="color:#e65100">
+            <td>Late Fee</td><td>—</td>
+            <td style="text-align:right">₹<%= Number(payment.late_fee).toLocaleString('en-IN') %></td>
+          </tr>
+          <% } %>
+        </tbody>
+      </table>
+      <% } %>
+      <div class="amount-row">
+        <div><div class="amount-label">Total Amount Paid</div><div class="amount-value">₹<%= Number(payment.total_amount).toLocaleString('en-IN') %></div></div>
+        <% if(isPending){ %><span class="pending-badge">⏳ PENDING</span><% } else { %><span style="background:#4caf50;color:#fff;padding:2px 10px;border-radius:12px;font-size:9px;font-weight:700">✅ VERIFIED</span><% } %>
+      </div>
+      <div class="receipt-footer">
+        <div><div>Online Portal Payment</div><div style="margin-top:2px">Generated: <%= new Date().toLocaleDateString('en-IN') %></div></div>
+        <div style="font-size:8.5px;color:#e65100;text-align:center;font-weight:600">Show this receipt at<br>school office for verification</div>
+        <div class="sig-block"><div class="sig-line"></div><div>Authorized Signatory</div></div>
+      </div>
+      <div class="watermark">Computer generated receipt | Portal ref: <%= payment.receipt_no %></div>
+    </div>
+  </div>
+</div>
+
+<div class="print-actions">
+  <button class="btn-print" onclick="window.print()">🖨️ Print Receipt</button>
+  <a href="/portal/dashboard" class="btn-dashboard">✅ Back to Dashboard</a>
+  <button class="btn-close" onclick="window.close()">✕ Close</button>
+</div>
+
+</body>
+</html>

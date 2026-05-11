@@ -1,19 +1,102 @@
 <%- include('../partials/header', { title: 'Configuration', activePage: 'config' }) %>
-<div class='page-header'><div><h1>⚙️ Configuration</h1></div></div>
-<form method='POST' action='/configuration/save'>
-<div class='form-card'>
-  <div class='form-card-header'>⚙️ School Settings</div>
-  <div class='form-card-body'>
-    <div class='form-grid'>
-      <% config.forEach(c => { %>
-      <div class='form-group'>
+
+<div class="page-header">
+  <div><h1>⚙️ Configuration</h1><p class="page-sub">Manage school settings, payment details, and system options</p></div>
+</div>
+
+<!-- SCHOOL SETTINGS -->
+<form method="POST" action="/configuration/save">
+<div class="form-card" style="margin-bottom:20px">
+  <div class="form-card-header">🏫 School Settings</div>
+  <div class="form-card-body">
+    <div class="form-grid">
+      <% schoolConfig.forEach(c=>{ %>
+      <div class="form-group">
         <label><%= c.description || c.key_name %></label>
-        <input type='text' name='<%= c.key_name %>' class='form-control' value='<%= c.value || "" %>'>
+        <input type="text" name="<%= c.key_name %>" class="form-control" value="<%= c.value||'' %>">
       </div>
       <% }) %>
     </div>
   </div>
-  <div class='form-actions'><button type='submit' class='btn btn-purple'>💾 Save Settings</button></div>
+  <div class="form-actions"><button type="submit" class="btn btn-purple">💾 Save School Settings</button></div>
 </div>
 </form>
+
+<!-- PAYMENT SETTINGS -->
+<form method="POST" action="/configuration/save">
+<div class="form-card" style="margin-bottom:20px">
+  <div class="form-card-header">💳 Payment & UPI Settings</div>
+  <div class="form-card-body">
+    <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#555">
+      ℹ️ These details are shown in the <strong>Student Portal</strong> for online fee payment. The UPI ID will be used to generate the payment QR code.
+    </div>
+    <div class="form-grid">
+      <% paymentConfig.forEach(c=>{ %>
+      <div class="form-group" <%= c.key_name==='payment_note'?'style="grid-column:1/-1"':'' %>>
+        <label><%= c.description || c.key_name %></label>
+        <% if(c.key_name==='payment_note'){ %>
+          <textarea name="<%= c.key_name %>" class="form-control" rows="2" style="resize:vertical"><%= c.value||'' %></textarea>
+        <% } else { %>
+          <input type="text" name="<%= c.key_name %>" class="form-control" value="<%= c.value||'' %>"
+            placeholder="<%= c.key_name==='upi_id'?'e.g. jbmpschool@sbi':c.key_name==='account_no'?'Account Number':c.key_name==='ifsc_code'?'e.g. SBIN0001234':'' %>">
+        <% } %>
+      </div>
+      <% }) %>
+    </div>
+    <div style="background:#f0e6ff;border-radius:8px;padding:12px 16px;margin-top:10px">
+      <div style="font-weight:700;color:#4A0E8F;margin-bottom:8px;font-size:13px">📱 Current UPI Preview</div>
+      <div style="font-size:18px;font-weight:800;color:#4A0E8F;letter-spacing:1px"><%= config.upi_id||'Not set' %></div>
+      <div style="font-size:12px;color:#666;margin-top:4px">Bank: <%= config.bank_name||'—' %> &nbsp;|&nbsp; A/C: <%= config.account_no||'—' %> &nbsp;|&nbsp; IFSC: <%= config.ifsc_code||'—' %></div>
+    </div>
+  </div>
+  <div class="form-actions"><button type="submit" class="btn btn-purple">💾 Save Payment Settings</button></div>
+</div>
+</form>
+
+<!-- FEE STRUCTURE LINK -->
+<div class="form-card" style="margin-bottom:20px">
+  <div class="form-card-header">📋 Fee Structure</div>
+  <div class="form-card-body">
+    <p style="font-size:13px;color:#555;margin-bottom:12px">Set class-wise, head-wise fee amounts. Fee structure is used in the Student Portal for online fee selection and payment calculation.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <a href="/feemanagement/structure" class="btn btn-purple">📋 Edit Fee Structure (Class-wise)</a>
+      <a href="/feemanagement/masters/heads" class="btn" style="background:#f0e6ff;color:#4A0E8F">➕ Manage Fee Heads</a>
+      <a href="/feemanagement/online" class="btn" style="background:#e8f5e9;color:#2e7d32">📱 Online Payment Requests</a>
+    </div>
+  </div>
+</div>
+
+<!-- RESET DEMO DATA -->
+<div class="form-card" style="border:2px solid #ff5252">
+  <div class="form-card-header" style="background:#c62828">⚠️ Reset Demo Data</div>
+  <div class="form-card-body">
+    <div style="background:#fff8f8;border:1px solid #ffcdd2;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px">
+      <strong style="color:#c62828">⚠️ Warning:</strong> This will permanently delete all transaction records. The following will be cleared:
+      <ul style="margin:8px 0 0 16px;color:#555;line-height:2">
+        <li>All fee payments (office receipts)</li>
+        <li>All online payment requests from student portal</li>
+        <li>All student & staff attendance records</li>
+        <li>All certificates issued (TC, Bonafide, Marksheet)</li>
+        <li>All notices, leave requests, admissions enquiries</li>
+        <li>All salary payment records</li>
+        <li>All SMS logs and library issues</li>
+      </ul>
+      <div style="margin-top:8px;font-weight:700;color:#2e7d32">✅ Preserved: Students, Staff, Classes, Configuration, Fee Structure, Admin Users</div>
+    </div>
+    <form method="POST" action="/configuration/reset-demo" onsubmit="return confirmReset()">
+      <div class="form-group" style="max-width:400px">
+        <label>Enter Reset Password to confirm</label>
+        <input type="password" name="reset_password" class="form-control" placeholder="Enter password to proceed" required style="border-color:#ff5252">
+      </div>
+      <button type="submit" class="btn" style="background:#c62828;color:#fff;padding:10px 24px">🗑️ Reset All Demo Data</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function confirmReset() {
+  return confirm('⚠️ FINAL WARNING\n\nThis will delete ALL transaction data permanently.\nThis action CANNOT be undone.\n\nAre you absolutely sure?');
+}
+</script>
+
 <%- include('../partials/footer') %>

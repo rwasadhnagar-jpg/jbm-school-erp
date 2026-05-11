@@ -3,6 +3,10 @@
 
 <div class="toolbar">
   <a href="/feemanagement/collect" class="btn btn-purple">+ Collect Fee</a>
+  <a href="/feemanagement/online" class="btn" style="background:<%= pendingOnline>0?'#ff9800':'#f0e6ff' %>;color:<%= pendingOnline>0?'#fff':'#4A0E8F' %>;font-weight:700">
+    📱 Online Payments<% if(pendingOnline>0){ %> (<%= pendingOnline %> ⏳)<% } %>
+  </a>
+  <a href="/feemanagement/structure" class="btn btn-outline-purple">📋 Fee Structure</a>
   <div class="dropdown">
     <button class="btn btn-outline-purple">Fee Masters ▾</button>
     <div class="dropdown-menu">
@@ -17,10 +21,6 @@
       <a href="/feemanagement/reports/defaulters">Defaulter List</a>
       <a href="/feemanagement/reports/download">⬇️ Download CSV</a>
     </div>
-  </div>
-  <div class="dropdown">
-    <button class="btn btn-outline-purple">Concession ▾</button>
-    <div class="dropdown-menu"><a href="#">Add Concession</a><a href="#">Concession Report</a></div>
   </div>
 </div>
 

@@ -1,26 +1,144 @@
-﻿<%- include('../partials/header', { title: 'Fee Heads', activePage: 'fees' }) %>
-<div class="page-header"><div><h1>💰 Fee Heads Master</h1></div></div>
+<%- include('../partials/header', { title: 'Fee Heads', activePage: 'fees' }) %>
+<div class="page-header">
+  <div><h1>💰 Fee Heads Master</h1><p class="page-sub">Define fee heads with type (Monthly/Annual) and late fee rules</p></div>
+  <a href="/feemanagement/structure" class="btn btn-purple">📋 Set Class-wise Amounts →</a>
+</div>
+
+<% if(success&&success.length){%><div class="alert alert-success">✅ <%=success[0]%></div><%}%>
+<% if(error&&error.length){%><div class="alert alert-error">⚠️ <%=error[0]%></div><%}%>
+
 <div class="dashboard-row col-2">
 <div class="form-card">
   <div class="form-card-header">➕ Add Fee Head</div>
   <div class="form-card-body">
     <form method="POST" action="/feemanagement/masters/heads/add">
-      <div class="form-group" style="margin-bottom:12px"><label>Fee Head Name *</label><input type="text" name="name" class="form-control" required placeholder="e.g. Tuition Fee"></div>
-      <div class="form-group" style="margin-bottom:12px"><label>Description</label><input type="text" name="description" class="form-control"></div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Fee Head Name *</label>
+        <input type="text" name="name" class="form-control" required placeholder="e.g. Tuition Fee, Annual Charges">
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Description</label>
+        <input type="text" name="description" class="form-control" placeholder="Optional description">
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Fee Type *</label>
+        <select name="fee_type" class="form-control">
+          <option value="Monthly">Monthly (collected every month Apr-Mar)</option>
+          <option value="Annual">Annual (one-time per year)</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">
+          <input type="checkbox" name="apply_late_fee" value="1" style="accent-color:#e65100;width:16px;height:16px">
+          <span>Apply Late Fee (₹10/day after 10th of month)</span>
+        </label>
+        <div style="font-size:11px;color:#888;margin-top:4px;margin-left:24px">Typically enabled only for Tuition Fee</div>
+      </div>
       <button type="submit" class="btn btn-purple">Add Fee Head</button>
     </form>
   </div>
 </div>
+
 <div class="table-container">
   <div class="table-header"><h3>All Fee Heads</h3></div>
-  <table><thead><tr><th>#</th><th>Name</th><th>Status</th><th>Action</th></tr></thead>
-  <tbody>
-    <% heads.forEach((h,i) => { %>
-    <tr><td><%= i+1 %></td><td><strong><%= h.name %></strong></td>
-    <td><% if(h.is_active) { %><span class="badge badge-green">Active</span><% } else { %><span class="badge badge-grey">Inactive</span><% } %></td>
-    <td><form method="POST" action="/feemanagement/masters/heads/delete/<%= h.id %>" style="display:inline" onsubmit="return confirm('Remove this fee head?')"><button class="btn btn-outline-red btn-xs">Remove</button></form></td></tr>
-    <% }) %>
-  </tbody></table>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Late Fee</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% heads.forEach((h,i)=>{ %>
+      <tr>
+        <td><%= i+1 %></td>
+        <td>
+          <strong><%= h.name %></strong>
+          <% if(h.description){ %><br><span style="font-size:11px;color:#888"><%= h.description %></span><% } %>
+        </td>
+        <td>
+          <span style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;
+            background:<%= h.fee_type==='Annual'?'#fff3e0':'#e8f5e9' %>;
+            color:<%= h.fee_type==='Annual'?'#e65100':'#2e7d32' %>">
+            <%= h.fee_type||'Monthly' %>
+          </span>
+        </td>
+        <td>
+          <% if(h.apply_late_fee){ %>
+          <span style="color:#e65100;font-size:11px;font-weight:700">₹10/day</span>
+          <% } else { %>
+          <span style="color:#aaa;font-size:11px">—</span>
+          <% } %>
+        </td>
+        <td>
+          <% if(h.is_active){ %><span class="badge badge-green">Active</span><% }else{ %><span class="badge badge-grey">Inactive</span><% } %>
+        </td>
+        <td>
+          <button onclick="showEdit(<%= JSON.stringify(h) %>)" class="btn btn-outline-purple btn-xs">Edit</button>
+          <form method="POST" action="/feemanagement/masters/heads/delete/<%= h.id %>" style="display:inline" onsubmit="return confirm('Remove this fee head?')">
+            <button class="btn btn-outline-red btn-xs">Remove</button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
 </div>
 </div>
+
+<!-- Edit Modal -->
+<div id="editModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;width:420px;max-width:95vw;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="background:#4A0E8F;color:#fff;padding:14px 18px;font-weight:700;font-size:15px;display:flex;justify-content:space-between;align-items:center">
+      ✏️ Edit Fee Head
+      <button onclick="closeEdit()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer">×</button>
+    </div>
+    <form id="editForm" method="POST">
+      <div style="padding:18px;display:flex;flex-direction:column;gap:12px">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Fee Head Name *</label>
+          <input type="text" name="name" id="editName" class="form-control" required>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Description</label>
+          <input type="text" name="description" id="editDesc" class="form-control">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Fee Type</label>
+          <select name="fee_type" id="editType" class="form-control">
+            <option value="Monthly">Monthly</option>
+            <option value="Annual">Annual</option>
+          </select>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:13px">
+          <input type="checkbox" name="apply_late_fee" id="editLate" value="1" style="accent-color:#e65100;width:16px;height:16px">
+          Apply Late Fee (₹10/day after 10th)
+        </label>
+      </div>
+      <div style="padding:12px 18px;background:#f5f5f5;display:flex;gap:10px;justify-content:flex-end">
+        <button type="submit" class="btn btn-purple">💾 Save Changes</button>
+        <button type="button" onclick="closeEdit()" class="btn btn-outline-purple">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function showEdit(h) {
+  document.getElementById('editName').value = h.name;
+  document.getElementById('editDesc').value = h.description || '';
+  document.getElementById('editType').value = h.fee_type || 'Monthly';
+  document.getElementById('editLate').checked = !!h.apply_late_fee;
+  document.getElementById('editForm').action = '/feemanagement/masters/heads/update/' + h.id;
+  document.getElementById('editModal').style.display = 'flex';
+}
+function closeEdit() {
+  document.getElementById('editModal').style.display = 'none';
+}
+</script>
+
 <%- include('../partials/footer') %>
