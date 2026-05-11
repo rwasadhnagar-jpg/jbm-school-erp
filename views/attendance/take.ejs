@@ -1,0 +1,60 @@
+<%- include('../partials/header', { title: 'Take Attendance', activePage: 'attendance' }) %>
+<div class="page-header"><div><h1>📝 Take Attendance</h1><div class="breadcrumb"><a href="/attday" style="color:rgba(255,255,255,0.8)">Attendance</a> → Take</div></div></div>
+
+<div class="toolbar">
+  <form method="GET" action="/attday/take" class="search-bar">
+    <select name="class_id" class="form-control form-control-sm" style="width:180px">
+      <option value="">Select Class</option>
+      <% classes.forEach(c => { %><option value="<%= c.id %>" <%= class_id == c.id ? 'selected':'' %>><%= c.class_name %> - <%= c.section %></option><% }) %>
+    </select>
+    <input type="date" name="date" value="<%= today %>" class="form-control form-control-sm">
+    <button type="submit" class="btn btn-purple btn-sm">Load</button>
+  </form>
+</div>
+
+<% if(students.length) { %>
+<form method="POST" action="/attday/take">
+  <input type="hidden" name="class_id" value="<%= class_id %>">
+  <input type="hidden" name="date" value="<%= today %>">
+  <div class="table-container">
+    <div class="table-header">
+      <h3>Mark Attendance — <%= today %></h3>
+      <div style="display:flex;gap:8px">
+        <button type="button" onclick="markAll('Present')" class="btn btn-green btn-sm">✅ Mark All Present</button>
+        <button type="button" onclick="markAll('Absent')" class="btn btn-outline-red btn-sm">Mark All Absent</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Roll No</th><th>Student Name</th><th>Present</th><th>Absent</th><th>Late</th><th>Leave</th></tr></thead>
+      <tbody>
+        <% students.forEach((s,i) => {
+          const ex = existing.find(e => e.student_id === s.id);
+          const status = ex ? ex.status : 'Present';
+        %>
+        <tr>
+          <td><%= i+1 %></td>
+          <td><%= s.roll_no||'—' %></td>
+          <td><strong><%= s.first_name %> <%= s.last_name %></strong></td>
+          <td><input type="radio" name="attendance[<%= s.id %>]" value="Present" <%= status==='Present'?'checked':'' %>></td>
+          <td><input type="radio" name="attendance[<%= s.id %>]" value="Absent" <%= status==='Absent'?'checked':'' %>></td>
+          <td><input type="radio" name="attendance[<%= s.id %>]" value="Late" <%= status==='Late'?'checked':'' %>></td>
+          <td><input type="radio" name="attendance[<%= s.id %>]" value="Leave" <%= status==='Leave'?'checked':'' %>></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <div class="form-actions"><button type="submit" class="btn btn-purple">💾 Save Attendance</button><a href="/attday" class="btn btn-outline-purple">Cancel</a></div>
+  </div>
+</form>
+<% } else if(class_id) { %>
+  <div class="no-data">No students found in this class</div>
+<% } else { %>
+  <div class="no-data">Please select a class to take attendance</div>
+<% } %>
+
+<script>
+function markAll(status) {
+  document.querySelectorAll('input[type=radio][value="'+status+'"]').forEach(r => r.checked = true);
+}
+</script>
+<%- include('../partials/footer') %>

@@ -1,0 +1,74 @@
+<%- include('../partials/header', { title: 'Database Backup', activePage: 'config' }) %>
+<div class="page-header">
+  <div>
+    <h1>🗄️ Database Backup</h1>
+    <div class="breadcrumb"><a href="/configuration" style="color:rgba(255,255,255,0.8)">Configuration</a> → Backup</div>
+  </div>
+</div>
+
+<div class="dashboard-row col-2">
+  <div class="form-card">
+    <div class="form-card-header">⚡ Manual Backup</div>
+    <div class="form-card-body">
+      <div class="alert alert-info" style="margin-bottom:16px">
+        ℹ️ The system automatically backs up the database every night at <strong>11:30 PM</strong>.<br>
+        Last <strong>7 backups</strong> are kept. Older ones are deleted automatically.
+      </div>
+      <form method="POST" action="/configuration/backup/run">
+        <button type="submit" class="btn btn-purple" style="width:100%;padding:12px;font-size:15px">
+          🔄 Run Backup Now
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <div class="form-card-header">📋 Backup Schedule</div>
+    <div class="form-card-body">
+      <table style="width:100%;font-size:13px;border-collapse:collapse">
+        <tr style="background:#f0e6ff"><th style="padding:8px;text-align:left">Setting</th><th style="padding:8px;text-align:left">Value</th></tr>
+        <tr><td style="padding:7px 8px;border-bottom:1px solid #eee">Auto Backup Time</td><td style="padding:7px 8px;border-bottom:1px solid #eee;color:#4A0E8F;font-weight:600">11:30 PM (IST) Daily</td></tr>
+        <tr><td style="padding:7px 8px;border-bottom:1px solid #eee">Backups Kept</td><td style="padding:7px 8px;border-bottom:1px solid #eee;color:#4A0E8F;font-weight:600">Last 7 days</td></tr>
+        <tr><td style="padding:7px 8px;border-bottom:1px solid #eee">Format</td><td style="padding:7px 8px;border-bottom:1px solid #eee;color:#4A0E8F;font-weight:600">SQL (importable)</td></tr>
+        <tr><td style="padding:7px 8px">Storage</td><td style="padding:7px 8px;color:#4A0E8F;font-weight:600">Server / backups folder</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="form-card" style="margin-top:0">
+  <div class="form-card-header">📦 Available Backups (<%= backups.length %>)</div>
+  <div class="form-card-body" style="padding:0">
+    <% if (backups.length === 0) { %>
+      <div style="padding:24px;text-align:center;color:#888">No backups yet. Click "Run Backup Now" to create one.</div>
+    <% } else { %>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:#4A0E8F;color:#fff">
+          <th style="padding:10px 16px;text-align:left">Filename</th>
+          <th style="padding:10px 16px;text-align:left">Date & Time</th>
+          <th style="padding:10px 16px;text-align:right">Size</th>
+          <th style="padding:10px 16px;text-align:center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% backups.forEach((b, i) => { %>
+        <tr style="background:<%= i%2===0?'#fff':'#fafafa' %>;border-bottom:1px solid #eee">
+          <td style="padding:10px 16px;font-family:monospace;font-size:12px"><%= b.name %></td>
+          <td style="padding:10px 16px"><%= new Date(b.date).toLocaleString('en-IN') %></td>
+          <td style="padding:10px 16px;text-align:right"><%= b.size %> KB</td>
+          <td style="padding:10px 16px;text-align:center">
+            <a href="/configuration/backup/download/<%= b.name %>" class="btn btn-sm btn-outline-purple" style="margin-right:6px">⬇️ Download</a>
+            <form method="POST" action="/configuration/backup/delete/<%= b.name %>" style="display:inline" onsubmit="return confirm('Delete this backup?')">
+              <button type="submit" class="btn btn-sm" style="background:#dc3545;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px">🗑️ Delete</button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

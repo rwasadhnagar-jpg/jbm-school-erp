@@ -1,0 +1,22 @@
+<%- include('../partials/header', { title: 'New Enquiry', activePage: 'admission' }) %>
+<div class="page-header"><div><h1>➕ New Admission Enquiry</h1><div class="breadcrumb"><a href="/registration" style="color:rgba(255,255,255,0.8)">Admissions</a> → New Enquiry</div></div></div>
+<form method="POST" action="/registration/add">
+<div class="form-card">
+  <div class="form-card-header">📋 Enquiry Details</div>
+  <div class="form-card-body">
+    <div class="form-grid">
+      <div class="form-group"><label>Student Name <span class="required">*</span></label><input type="text" name="student_name" class="form-control" required></div>
+      <div class="form-group"><label>Class Applied</label><input type="text" name="class_applied" class="form-control" placeholder="e.g. Class V"></div>
+      <div class="form-group"><label>Father's Name</label><input type="text" name="father_name" class="form-control"></div>
+      <div class="form-group"><label>Father's Mobile</label><input type="tel" name="father_mobile" class="form-control" maxlength="10"></div>
+      <div class="form-group"><label>Mother's Name</label><input type="text" name="mother_name" class="form-control"></div>
+      <div class="form-group"><label>Email</label><input type="email" name="email" class="form-control"></div>
+      <div class="form-group"><label>Enquiry Date</label><input type="date" name="enquiry_date" class="form-control" value="<%= new Date().toISOString().split('T')[0] %>"></div>
+    </div>
+    <div class="form-group" style="margin-top:12px"><label>Address</label><textarea name="address" class="form-control" rows="2"></textarea></div>
+    <div class="form-group" style="margin-top:12px"><label>Remarks</label><textarea name="remarks" class="form-control" rows="2"></textarea></div>
+  </div>
+</div>
+<div class="form-card"><div class="form-actions"><button type="submit" class="btn btn-purple">💾 Save Enquiry</button><a href="/registration" class="btn btn-outline-purple">Cancel</a></div></div>
+</form>
+<%- include('../partials/footer') %>

@@ -1,0 +1,128 @@
+<%- include('../partials/header', { title: 'Bulk Marks Upload', activePage: 'certificates' }) %>
+<div class="page-header">
+  <div><h1>📊 Bulk Marks Upload</h1><div class="breadcrumb"><a href="/certificates" style="color:rgba(255,255,255,0.8)">Certificates</a> → Bulk Marksheet</div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+
+  <!-- STEP 1: Download Template -->
+  <div class="form-card">
+    <div class="form-card-header">📥 Step 1 — Download Template</div>
+    <div class="form-card-body">
+      <form method="GET" action="/certificates/marksheet/bulk-template" id="templateForm">
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Select Class <span class="required">*</span></label>
+          <select name="class_id" class="form-control" required>
+            <option value="">-- Select Class --</option>
+            <% classes.forEach(c => { %><option value="<%= c.id %>"><%= c.class_name %> - <%= c.section %></option><% }) %>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Examination Name <span class="required">*</span></label>
+          <select name="exam_name" class="form-control" required>
+            <option>Unit Test 1</option>
+            <option>Half Yearly Examination</option>
+            <option>Unit Test 2</option>
+            <option>Annual Examination</option>
+            <option>Pre-Board Examination</option>
+            <option>Board Examination</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Subjects <span class="required">*</span></label>
+          <div id="subjects-list">
+            <% ['Hindi','English','Mathematics','Science','Social Science'].forEach(s => { %>
+            <div class="subject-chip" style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+              <input type="text" class="form-control subject-input" value="<%= s %>" placeholder="Subject name" style="flex:1">
+              <button type="button" class="btn btn-outline-red remove-subject" style="padding:5px 10px;font-size:13px">✕</button>
+            </div>
+            <% }) %>
+          </div>
+          <button type="button" id="addSubject" class="btn btn-outline-purple" style="margin-top:4px;font-size:13px">+ Add Subject</button>
+          <input type="hidden" name="subjects" id="subjects-hidden">
+        </div>
+        <button type="submit" class="btn btn-purple" onclick="buildSubjects()">📥 Download Template Excel</button>
+      </form>
+      <div style="margin-top:12px;padding:10px;background:#f7f3ff;border-radius:6px;font-size:12px;color:#555;line-height:1.7">
+        <strong style="color:#4A0E8F">How it works:</strong><br>
+        1. Fill class, exam, subjects → Download template<br>
+        2. Template has all students of that class pre-filled<br>
+        3. Enter marks in each subject column<br>
+        4. Upload filled file in Step 2 →
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Upload Filled File -->
+  <div class="form-card">
+    <div class="form-card-header">📤 Step 2 — Upload Filled Excel</div>
+    <div class="form-card-body">
+      <form method="POST" action="/certificates/marksheet/bulk-upload" enctype="multipart/form-data">
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Examination Name <span class="required">*</span></label>
+          <select name="exam_name" class="form-control" required>
+            <option>Unit Test 1</option>
+            <option>Half Yearly Examination</option>
+            <option>Unit Test 2</option>
+            <option>Annual Examination</option>
+            <option>Pre-Board Examination</option>
+            <option>Board Examination</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Academic Year</label>
+          <input type="text" name="academic_year" class="form-control" value="2026-2027">
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Max Marks Per Subject</label>
+          <input type="number" name="max_marks_per_subject" class="form-control" value="100" min="1" max="500">
+          <small style="color:#888;font-size:11px">Same max marks applied to all subjects. If subjects have different max marks, use individual marksheet instead.</small>
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Upload Excel File <span class="required">*</span></label>
+          <input type="file" name="marks_file" class="form-control" accept=".xlsx,.xls,.csv" required>
+          <small style="color:#888;font-size:11px">Accepts .xlsx, .xls or .csv files. Max size: 5MB.</small>
+        </div>
+
+        <button type="submit" class="btn btn-purple">📤 Upload & Create Marksheets</button>
+        <a href="/certificates" class="btn btn-outline-purple" style="margin-left:8px">Cancel</a>
+      </form>
+
+      <div style="margin-top:16px;border-top:1px solid #eee;padding-top:12px">
+        <div style="font-size:12px;font-weight:600;color:#4A0E8F;margin-bottom:6px">⚠️ Rules</div>
+        <ul style="font-size:12px;color:#666;line-height:1.8;padding-left:16px">
+          <li>Do NOT change <code>student_id</code> or column headers</li>
+          <li>Rows with all blank marks are skipped</li>
+          <li>Blank individual cells are counted as 0</li>
+          <li>Each row creates one marksheet for that student</li>
+          <li>You can reprint any marksheet from the Certificates list</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.getElementById('addSubject').addEventListener('click', () => {
+  const list = document.getElementById('subjects-list');
+  const div = document.createElement('div');
+  div.className = 'subject-chip';
+  div.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px';
+  div.innerHTML = `<input type="text" class="form-control subject-input" placeholder="Subject name" style="flex:1"><button type="button" class="btn btn-outline-red remove-subject" style="padding:5px 10px;font-size:13px">✕</button>`;
+  list.appendChild(div);
+});
+
+document.getElementById('subjects-list').addEventListener('click', e => {
+  if (e.target.classList.contains('remove-subject')) {
+    e.target.closest('.subject-chip').remove();
+  }
+});
+
+function buildSubjects() {
+  const inputs = document.querySelectorAll('.subject-input');
+  const subjects = Array.from(inputs).map(i => i.value.trim()).filter(Boolean).join(',');
+  document.getElementById('subjects-hidden').value = subjects;
+}
+</script>
+<%- include('../partials/footer') %>

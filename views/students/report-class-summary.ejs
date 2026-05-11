@@ -1,0 +1,38 @@
+﻿<%- include('../partials/header', { title: 'Class Summary Report', activePage: 'students' }) %>
+<div class="page-header"><div><h1>📊 Class Summary Report</h1><div class="breadcrumb">Students → Reports → Class Summary</div></div></div>
+<div class="toolbar">
+  <a href="/studentadministration/reports/download" class="btn btn-outline-green">⬇️ Download All Students CSV</a>
+  <a href="/studentadministration" class="btn btn-outline-purple">← Back to Students</a>
+</div>
+<div class="cards-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+  <div class="stat-card"><div class="stat-icon bg-purple">👨‍🎓</div><div><div class="stat-value"><%= totals.total %></div><div class="stat-label">Total Students</div></div></div>
+  <div class="stat-card"><div class="stat-icon bg-blue">👦</div><div><div class="stat-value"><%= totals.boys %></div><div class="stat-label">Boys</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:#fce4ec">👧</div><div><div class="stat-value"><%= totals.girls %></div><div class="stat-label">Girls</div></div></div>
+</div>
+<div class="table-container">
+  <div class="table-header"><h3>Class-wise Student Strength</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Class</th><th>Section</th><th>Total</th><th>Boys</th><th>Girls</th><th>General</th><th>OBC</th><th>SC</th><th>ST</th><th>EWS</th></tr></thead>
+    <tbody>
+      <% summary.forEach((r,i) => { %>
+      <tr>
+        <td><%= i+1 %></td>
+        <td><strong><%= r.class_name %></strong></td>
+        <td><span class="badge badge-purple"><%= r.section %></span></td>
+        <td><strong><%= r.total||0 %></strong></td>
+        <td style="color:var(--blue)"><%= r.boys||0 %></td>
+        <td style="color:#e91e8c"><%= r.girls||0 %></td>
+        <td><%= r.general||0 %></td><td><%= r.obc||0 %></td><td><%= r.sc||0 %></td><td><%= r.st||0 %></td><td><%= r.ews||0 %></td>
+      </tr>
+      <% }) %>
+      <tr style="background:#f0e8ff;font-weight:700">
+        <td colspan="3">GRAND TOTAL</td>
+        <td><%= totals.total %></td>
+        <td><%= totals.boys %></td>
+        <td><%= totals.girls %></td>
+        <td colspan="5"></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

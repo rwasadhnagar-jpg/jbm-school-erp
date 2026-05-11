@@ -1,0 +1,109 @@
+<%- include('partials/header', { title: 'Dashboard', activePage: 'dashboard' }) %>
+
+<div class="page-header">
+  <div>
+    <h1>📊 Dashboard</h1>
+    <div class="breadcrumb">Welcome back, <%= user.name %> &bull; <%= academicYear %></div>
+  </div>
+</div>
+
+<!-- Quick Links -->
+<div class="quick-links">
+  <a href="/studentadministration" class="quick-link"><span class="ql-icon">👨‍🎓</span>Students</a>
+  <a href="/feemanagement" class="quick-link"><span class="ql-icon">💰</span>Fee</a>
+  <a href="/registration" class="quick-link"><span class="ql-icon">📋</span>Admission</a>
+  <a href="/teachers" class="quick-link"><span class="ql-icon">👩‍🏫</span>Staff</a>
+  <a href="/attday" class="quick-link"><span class="ql-icon">✅</span>Attendance</a>
+  <a href="/sal" class="quick-link"><span class="ql-icon">💵</span>Salary</a>
+  <a href="/lms" class="quick-link"><span class="ql-icon">📚</span>Library</a>
+  <a href="/transport" class="quick-link"><span class="ql-icon">🚌</span>Transport</a>
+  <a href="/hostel" class="quick-link"><span class="ql-icon">🏠</span>Hostel</a>
+  <a href="/notices" class="quick-link"><span class="ql-icon">📢</span>Notices</a>
+</div>
+
+<!-- Stats -->
+<div class="cards-grid">
+  <div class="stat-card">
+    <div class="stat-icon bg-purple">👨‍🎓</div>
+    <div><div class="stat-value"><%= stats.totalStudents %></div><div class="stat-label">Total Students</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-blue">👩‍🏫</div>
+    <div><div class="stat-value"><%= stats.totalStaff %></div><div class="stat-label">Total Staff</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-green">🏫</div>
+    <div><div class="stat-value"><%= stats.totalClasses %></div><div class="stat-label">Classes</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-orange">💰</div>
+    <div><div class="stat-value">₹<%= Number(stats.todayCollection).toLocaleString('en-IN') %></div><div class="stat-label">Today's Collection</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-green">✅</div>
+    <div><div class="stat-value"><%= stats.presentToday %></div><div class="stat-label">Students Present Today</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-red">❌</div>
+    <div><div class="stat-value"><%= stats.absentToday %></div><div class="stat-label">Students Absent Today</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-purple">👩‍🏫</div>
+    <div><div class="stat-value"><%= stats.staffPresentToday %></div><div class="stat-label">Staff Present Today</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-orange">📅</div>
+    <div><div class="stat-value">₹<%= Number(stats.monthCollection).toLocaleString('en-IN') %></div><div class="stat-label">This Month Collection</div></div>
+  </div>
+</div>
+
+<!-- Bottom Row -->
+<div class="dashboard-row col-2">
+
+  <div class="dashboard-widget">
+    <div class="widget-header">
+      👨‍🎓 Recently Added Students
+      <a href="/studentadministration" style="font-size:12px;opacity:0.8;">View All →</a>
+    </div>
+    <div class="widget-body" style="padding:0">
+      <% if(recentStudents.length) { %>
+      <table>
+        <thead><tr><th>Name</th><th>Adm No</th><th>Class</th></tr></thead>
+        <tbody>
+        <% recentStudents.forEach(s => { %>
+          <tr>
+            <td><a href="/studentadministration/view/<%= s.id %>" style="color:var(--purple);font-weight:600"><%= s.first_name %> <%= s.last_name %></a></td>
+            <td><%= s.admission_no %></td>
+            <td><%= s.class_name || '—' %> <%= s.section || '' %></td>
+          </tr>
+        <% }) %>
+        </tbody>
+      </table>
+      <% } else { %>
+        <div class="no-data">No students added yet</div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="dashboard-widget">
+    <div class="widget-header">
+      📢 Recent Notices
+      <a href="/notices" style="font-size:12px;opacity:0.8;">View All →</a>
+    </div>
+    <div class="widget-body">
+      <% if(recentNotices.length) { %>
+        <% recentNotices.forEach(n => { %>
+          <div style="padding:8px 0;border-bottom:1px solid #f0f0f0">
+            <div style="font-weight:600;font-size:13px"><%= n.title %></div>
+            <div style="font-size:11px;color:#888"><%= n.for_type %> &bull; <%= n.publish_date ? moment(n.publish_date).format('DD MMM YYYY') : '' %></div>
+          </div>
+        <% }) %>
+      <% } else { %>
+        <div class="no-data">No notices yet</div>
+      <% } %>
+    </div>
+  </div>
+
+</div>
+
+<%- include('partials/footer') %>

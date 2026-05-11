@@ -1,0 +1,19 @@
+<%- include('../partials/header', { title: 'Salary', activePage: 'salary' }) %>
+<div class="page-header"><div><h1>💵 Salary Management</h1></div></div>
+<div class="table-container">
+  <div class="table-header"><h3>Salary Payments</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Staff Name</th><th>Month/Year</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Status</th></tr></thead>
+    <tbody>
+      <% if(payments.length) { payments.forEach((p,i) => { %>
+      <tr><td><%= i+1 %></td><td><strong><%= p.first_name %> <%= p.last_name %></strong></td>
+        <td><%= p.month %>/<%= p.year %></td>
+        <td>₹<%= Number(p.gross_salary).toLocaleString('en-IN') %></td>
+        <td>₹<%= Number(p.total_deductions).toLocaleString('en-IN') %></td>
+        <td><strong>₹<%= Number(p.net_salary).toLocaleString('en-IN') %></strong></td>
+        <td><span class="badge <%= p.status==='Paid'?'badge-green':'badge-orange' %>"><%= p.status %></span></td></tr>
+      <% }) } else { %><tr><td colspan="7" class="no-data">No salary records yet</td></tr><% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,65 @@
+<%- include('../partials/header', { title: 'WhatsApp Sender', activePage: 'sms' }) %>
+<div class="page-header"><div><h1>💬 WhatsApp Sender</h1><div class="breadcrumb"><a href="/sms" style="color:rgba(255,255,255,0.8)">SMS</a> → WhatsApp — <%= cls.class_name %> <%= cls.section %></div></div></div>
+
+<div class="form-card" style="margin-bottom:14px;max-width:700px">
+  <div class="form-card-header">✍️ Message to Send</div>
+  <div class="form-card-body">
+    <textarea id="wa-message" class="form-control" rows="4" placeholder="Type your message..."><%= msg %></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button onclick="openAll()" class="btn btn-purple">💬 Open All WhatsApp Links</button>
+      <a href="/sms" class="btn btn-outline-purple">← Back</a>
+    </div>
+    <div style="font-size:12px;color:#888;margin-top:6px">⚠️ WhatsApp will open one by one for each parent. Allow popups in your browser.</div>
+  </div>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>Students in <%= cls.class_name %> - <%= cls.section %> (<%= students.length %> students)</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Student</th><th>Father's Name</th><th>Mobile</th><th>Action</th></tr></thead>
+    <tbody>
+      <% students.forEach((s, i) => { %>
+      <tr>
+        <td><%= i+1 %></td>
+        <td><strong><%= s.first_name %> <%= s.last_name %></strong><br><small style="color:#888"><%= s.admission_no %></small></td>
+        <td><%= s.father_name || '—' %></td>
+        <td>
+          <% if(s.mobile) { %>
+            <strong><%= s.mobile %></strong>
+          <% } else { %>
+            <span style="color:#dc3545">Not available</span>
+          <% } %>
+        </td>
+        <td>
+          <% if(s.mobile) { %>
+          <a id="wa-<%= s.id %>" href="#" onclick="sendWA('<%= s.mobile %>');return false;" class="btn btn-outline-purple" style="padding:3px 10px;font-size:12px;background:#25D366;border-color:#25D366;color:#fff">💬 Send</a>
+          <% } else { %>
+          <span style="color:#aaa;font-size:12px">No mobile</span>
+          <% } %>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<script>
+function sendWA(mobile) {
+  const msg = document.getElementById('wa-message').value;
+  const clean = mobile.replace(/\D/g,'');
+  const num = clean.startsWith('91') ? clean : '91' + clean;
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function openAll() {
+  const mobiles = [<% students.filter(s=>s.mobile).forEach((s,i,a) => { %>'<%= s.mobile %>'<%= i<a.length-1?',':'' %><% }) %>];
+  let i = 0;
+  function next() {
+    if (i >= mobiles.length) return;
+    sendWA(mobiles[i++]);
+    setTimeout(next, 1500);
+  }
+  next();
+}
+</script>
+<%- include('../partials/footer') %>

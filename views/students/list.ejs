@@ -1,0 +1,125 @@
+<%- include('../partials/header', { title: 'Student Administration', activePage: 'students' }) %>
+
+<div class="page-header">
+  <div>
+    <h1>👨‍🎓 Student Administration</h1>
+    <div class="breadcrumb">Total Active Students: <%= total %></div>
+  </div>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <a href="/studentadministration/add" class="btn btn-purple">+ Add Student</a>
+  <a href="/studentadministration/bulk-upload" class="btn btn-outline-purple">📤 Bulk Upload</a>
+  <div class="dropdown">
+    <button class="btn btn-outline-purple">Reports ▾</button>
+    <div class="dropdown-menu">
+      <a href="/studentadministration/reports/class-summary">📊 Class Summary</a>
+      <a href="/studentadministration/reports/download">⬇️ Download All Students CSV</a>
+      <div class="dropdown-divider"></div>
+      <a href="#">Student Age Report</a>
+      <a href="#">Monthly Admission Report</a>
+      <a href="#">Student Strength Report</a>
+      <a href="#">Category-wise Details</a>
+    </div>
+  </div>
+  <div class="dropdown">
+    <button class="btn btn-outline-purple">Certificates ▾</button>
+    <div class="dropdown-menu">
+      <a href="#">Student Certificate</a>
+      <a href="#">Teacher Certificate</a>
+      <a href="#">Certificate List</a>
+      <a href="#">Custom ID Card</a>
+    </div>
+  </div>
+  <div class="dropdown">
+    <button class="btn btn-outline-purple">TC ▾</button>
+    <div class="dropdown-menu">
+      <a href="#">Generate TC</a>
+      <a href="#">TC Requests</a>
+      <a href="#">TC Summary Report</a>
+    </div>
+  </div>
+  <a href="/studentadministration?status=inactive" class="btn btn-outline-purple">Inactive</a>
+</div>
+
+<!-- Filters -->
+<div class="table-container">
+  <div class="table-header">
+    <h3>Student List</h3>
+    <form method="GET" action="/studentadministration" class="search-bar">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" name="search" value="<%= search || '' %>" placeholder="Search name / adm no..." class="form-control form-control-sm">
+      </div>
+      <select name="class_id" class="form-control form-control-sm" style="width:160px">
+        <option value="">All Classes</option>
+        <% classes.forEach(c => { %>
+          <option value="<%= c.id %>" <%= class_id == c.id ? 'selected' : '' %>><%= c.class_name %> - <%= c.section %></option>
+        <% }) %>
+      </select>
+      <button type="submit" class="btn btn-purple btn-sm">Search</button>
+      <a href="/studentadministration" class="btn btn-outline-purple btn-sm">Clear</a>
+    </form>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Student Name</th>
+        <th>Adm No.</th>
+        <th>Roll No.</th>
+        <th>Class</th>
+        <th>DOB</th>
+        <th>Father's Name</th>
+        <th>Father Mobile</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if(students.length) { %>
+        <% students.forEach((s, i) => { %>
+        <tr>
+          <td><%= i + 1 %></td>
+          <td>
+            <a href="/studentadministration/view/<%= s.id %>" style="color:var(--purple);font-weight:600">
+              <%= s.first_name %> <%= s.middle_name || '' %> <%= s.last_name %>
+            </a>
+            <% if(s.photo) { %><br><small style="color:#aaa">📷 Photo</small><% } %>
+          </td>
+          <td><strong><%= s.admission_no %></strong></td>
+          <td><%= s.roll_no || '—' %></td>
+          <td><%= s.class_name || '—' %> <% if(s.section) { %><span class="badge badge-purple"><%= s.section %></span><% } %></td>
+          <td><%= s.dob ? moment(s.dob).format('DD/MM/YYYY') : '—' %></td>
+          <td><%= s.father_first ? s.father_first + ' ' + (s.father_last || '') : '—' %></td>
+          <td><%= s.father_mobile || '—' %></td>
+          <td>
+            <% if(s.status === 'active') { %><span class="badge badge-green">Active</span>
+            <% } else if(s.status === 'inactive') { %><span class="badge badge-grey">Inactive</span>
+            <% } else { %><span class="badge badge-orange"><%= s.status %></span><% } %>
+          </td>
+          <td>
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              <a href="/studentadministration/view/<%= s.id %>" class="btn btn-outline-purple btn-xs">👁 View</a>
+              <a href="/studentadministration/edit/<%= s.id %>" class="btn btn-outline-purple btn-xs">✏️ Edit</a>
+              <form method="POST" action="/studentadministration/delete/<%= s.id %>" style="display:inline" onsubmit="return confirm('Deactivate this student?')">
+                <button type="submit" class="btn btn-outline-red btn-xs">🗑</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        <% }) %>
+      <% } else { %>
+        <tr><td colspan="10" class="no-data">No students found</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+  <div class="table-footer">
+    Showing <%= students.length %> of <%= total %> students
+    <% if(search || class_id) { %><a href="/studentadministration" style="color:var(--purple)">Clear filters</a><% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

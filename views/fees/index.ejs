@@ -1,0 +1,56 @@
+<%- include('../partials/header', { title: 'Fee Management', activePage: 'fees' }) %>
+<div class="page-header"><div><h1>💰 Fee Management</h1><div class="breadcrumb">Manage student fees</div></div></div>
+
+<div class="toolbar">
+  <a href="/feemanagement/collect" class="btn btn-purple">+ Collect Fee</a>
+  <div class="dropdown">
+    <button class="btn btn-outline-purple">Fee Masters ▾</button>
+    <div class="dropdown-menu">
+      <a href="/feemanagement/masters/heads">Fee Heads</a>
+      <a href="/feemanagement/masters/groups">Fee Groups</a>
+    </div>
+  </div>
+  <div class="dropdown">
+    <button class="btn btn-outline-purple">Reports ▾</button>
+    <div class="dropdown-menu">
+      <a href="/feemanagement/reports/collection">Fee Collection Report</a>
+      <a href="/feemanagement/reports/defaulters">Defaulter List</a>
+      <a href="/feemanagement/reports/download">⬇️ Download CSV</a>
+    </div>
+  </div>
+  <div class="dropdown">
+    <button class="btn btn-outline-purple">Concession ▾</button>
+    <div class="dropdown-menu"><a href="#">Add Concession</a><a href="#">Concession Report</a></div>
+  </div>
+</div>
+
+<div class="cards-grid" style="grid-template-columns:repeat(3,1fr)">
+  <div class="stat-card"><div class="stat-icon bg-green">💰</div><div><div class="stat-value">₹<%= Number(todayTotal).toLocaleString('en-IN') %></div><div class="stat-label">Today's Collection</div></div></div>
+  <div class="stat-card"><div class="stat-icon bg-orange">📅</div><div><div class="stat-value">₹<%= Number(monthTotal).toLocaleString('en-IN') %></div><div class="stat-label">This Month</div></div></div>
+  <div class="stat-card"><div class="stat-icon bg-blue">🧾</div><div><div class="stat-value"><%= payments.length %></div><div class="stat-label">Recent Transactions</div></div></div>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>Recent Fee Payments</h3></div>
+  <table>
+    <thead><tr><th>Receipt No.</th><th>Student</th><th>Class</th><th>Amount</th><th>Date</th><th>Mode</th><th>Action</th></tr></thead>
+    <tbody>
+      <% if(payments.length) { %>
+        <% payments.forEach(p => { %>
+        <tr>
+          <td><strong><%= p.receipt_no || '—' %></strong></td>
+          <td><a href="/studentadministration/view/<%= p.student_id %>" style="color:var(--purple)"><%= p.first_name %> <%= p.last_name %></a></td>
+          <td><%= p.class_name || '—' %> <%= p.section || '' %></td>
+          <td><strong>₹<%= Number(p.amount_paid).toLocaleString('en-IN') %></strong></td>
+          <td><%= moment(p.payment_date).format('DD MMM YYYY') %></td>
+          <td><span class="badge badge-blue"><%= p.payment_mode %></span></td>
+          <td><a href="/feemanagement/receipt/<%= p.id %>" target="_blank" class="btn btn-outline-purple" style="padding:3px 10px;font-size:12px">🖨 Receipt</a></td>
+        </tr>
+        <% }) %>
+      <% } else { %>
+        <tr><td colspan="6" class="no-data">No fee payments yet</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

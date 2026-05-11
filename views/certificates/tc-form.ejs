@@ -1,0 +1,77 @@
+<%- include('../partials/header', { title: 'Issue TC', activePage: 'certificates' }) %>
+<div class="page-header"><div><h1>📜 Issue Transfer Certificate</h1><div class="breadcrumb"><a href="/certificates" style="color:rgba(255,255,255,0.8)">Certificates</a> → Issue TC</div></div></div>
+
+<div class="form-card" style="max-width:700px">
+  <div class="form-card-header">🎓 Transfer Certificate Form</div>
+  <div class="form-card-body">
+    <form method="POST" action="/certificates/tc/issue">
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Select Student <span class="required">*</span></label>
+        <select name="student_id" class="form-control" required>
+          <option value="">-- Select Student --</option>
+          <% students.forEach(s => { %><option value="<%= s.id %>"><%= s.first_name %> <%= s.last_name %> | <%= s.admission_no %> | <%= s.class_name||'' %> <%= s.section||'' %></option><% }) %>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="form-group">
+          <label>Issue Date <span class="required">*</span></label>
+          <input type="date" name="issue_date" class="form-control" value="<%= new Date().toISOString().split('T')[0] %>" required>
+        </div>
+        <div class="form-group">
+          <label>Date of Leaving</label>
+          <input type="date" name="leaving_date" class="form-control">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="form-group">
+          <label>Last Class Studied</label>
+          <input type="text" name="last_class" class="form-control" placeholder="e.g. Class X - A">
+        </div>
+        <div class="form-group">
+          <label>Result / Exam Passed</label>
+          <select name="result" class="form-control">
+            <option>Promoted</option>
+            <option>Passed</option>
+            <option>Failed</option>
+            <option>Appeared</option>
+            <option>Detained</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="form-group">
+          <label>Reason for Leaving</label>
+          <select name="reason" class="form-control">
+            <option>Parent's Request</option>
+            <option>Shifting to Other City</option>
+            <option>Admission in Other School</option>
+            <option>Completion of Studies</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Conduct</label>
+          <select name="conduct" class="form-control">
+            <option>Good</option>
+            <option>Excellent</option>
+            <option>Satisfactory</option>
+            <option>Fair</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Date of Birth in Words <small style="color:#888">(optional, overrides DB)</small></label>
+        <input type="text" name="dob_words" class="form-control" placeholder="e.g. Fifteenth July Two Thousand Ten">
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Remarks</label>
+        <textarea name="remarks" class="form-control" rows="2" placeholder="Any additional remarks..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-purple">📜 Issue & Print TC</button>
+        <a href="/certificates" class="btn btn-outline-purple">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+<%- include('../partials/footer') %>

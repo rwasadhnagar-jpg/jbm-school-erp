@@ -1,0 +1,137 @@
+<%- include('../partials/header', { title: 'Compose Message', activePage: 'sms' }) %>
+<div class="page-header"><div><h1>✍️ Compose Message</h1><div class="breadcrumb"><a href="/sms" style="color:rgba(255,255,255,0.8)">SMS</a> → Compose</div></div></div>
+
+<div style="display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start">
+  <!-- Compose Form -->
+  <div class="form-card">
+    <div class="form-card-header">📨 New Message</div>
+    <div class="form-card-body">
+      <form method="POST" action="/sms/send" id="composeForm">
+        <input type="hidden" name="template_name" id="template_name" value="<%= selectedTemplate ? selectedTemplate.name : '' %>">
+
+        <!-- Target -->
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Send To <span class="required">*</span></label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 14px;border:2px solid #d0b8f5;border-radius:20px;font-size:13px" id="lbl-individual">
+              <input type="radio" name="target" value="individual" id="t-individual" style="display:none" checked> 👤 Individual
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 14px;border:2px solid #d0b8f5;border-radius:20px;font-size:13px" id="lbl-class">
+              <input type="radio" name="target" value="class" id="t-class" style="display:none"> 🏫 Entire Class
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 14px;border:2px solid #d0b8f5;border-radius:20px;font-size:13px" id="lbl-all">
+              <input type="radio" name="target" value="all" id="t-all" style="display:none"> 🏫 All Students
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 14px;border:2px solid #d0b8f5;border-radius:20px;font-size:13px" id="lbl-custom">
+              <input type="radio" name="target" value="custom" id="t-custom" style="display:none"> 📞 Custom Number
+            </label>
+          </div>
+        </div>
+
+        <!-- Individual -->
+        <div id="section-individual" class="form-group" style="margin-bottom:14px">
+          <label>Select Student</label>
+          <select name="student_id" class="form-control" id="student-select">
+            <option value="">-- Select Student --</option>
+            <% students.forEach(s => { %><option value="<%= s.id %>" data-name="<%= s.first_name %> <%= s.last_name %>" data-class="<%= s.class_name||'' %> <%= s.section||'' %>"><%= s.first_name %> <%= s.last_name %> | <%= s.admission_no %> | <%= s.class_name||'' %> <%= s.section||'' %></option><% }) %>
+          </select>
+        </div>
+
+        <!-- Class -->
+        <div id="section-class" class="form-group" style="margin-bottom:14px;display:none">
+          <label>Select Class</label>
+          <select name="class_id" class="form-control" id="class-select">
+            <option value="">-- Select Class --</option>
+            <% classes.forEach(c => { %><option value="<%= c.id %>"><%= c.class_name %> - <%= c.section %></option><% }) %>
+          </select>
+        </div>
+
+        <!-- Custom -->
+        <div id="section-custom" class="form-group" style="margin-bottom:14px;display:none">
+          <label>Mobile Number</label>
+          <input type="text" name="custom_mobile" class="form-control" placeholder="10-digit mobile number">
+        </div>
+
+        <!-- Message Type -->
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Message Type</label>
+          <select name="type" class="form-control">
+            <option value="WhatsApp">WhatsApp</option>
+            <option value="SMS">SMS</option>
+          </select>
+        </div>
+
+        <!-- Message -->
+        <div class="form-group" style="margin-bottom:8px">
+          <label>Message <span class="required">*</span></label>
+          <textarea name="message" id="msg-box" class="form-control" rows="5" required placeholder="Type your message here..."><%= selectedTemplate ? selectedTemplate.message : '' %></textarea>
+          <div style="text-align:right;font-size:11px;color:#888;margin-top:3px"><span id="charCount">0</span> characters</div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button type="submit" class="btn btn-purple">📨 Log & Send</button>
+          <a href="/sms" class="btn btn-outline-purple">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Templates Panel -->
+  <div class="form-card">
+    <div class="form-card-header">📋 Quick Templates</div>
+    <div class="form-card-body" style="padding:10px">
+      <% templates.forEach(t => { %>
+      <div onclick="applyTemplate('<%= t.name %>', `<%= t.message.replace(/`/g, '\\`') %>`)"
+           style="cursor:pointer;border:1px solid #e0d0f5;border-radius:6px;padding:10px 12px;margin-bottom:8px;transition:all 0.2s"
+           onmouseover="this.style.background='#f7f3ff';this.style.borderColor='#4A0E8F'" onmouseout="this.style.background='';this.style.borderColor='#e0d0f5'">
+        <div style="font-weight:600;font-size:13px;color:#4A0E8F"><%= t.label %></div>
+        <div style="font-size:11px;color:#888;margin-top:3px;line-height:1.4"><%= t.message.substring(0,80) %>...</div>
+      </div>
+      <% }) %>
+
+      <div style="margin-top:14px;border-top:1px solid #eee;padding-top:12px">
+        <div style="font-size:12px;font-weight:600;color:#4A0E8F;margin-bottom:6px">💡 Placeholders</div>
+        <div style="font-size:11px;color:#666;line-height:1.8">
+          <code>{student_name}</code> — Student's full name<br>
+          <code>{class}</code> — Class & section<br>
+          <code>{date}</code> — Any date<br>
+          <code>{reason}</code> — Reason / event<br>
+          <code>{exam_name}</code> — Exam name<br>
+          <code>{time}</code> — Time of event
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const targets = ['individual','class','all','custom'];
+
+function setTarget(t) {
+  targets.forEach(id => {
+    const lbl = document.getElementById('lbl-'+id);
+    const sec = document.getElementById('section-'+id);
+    if (lbl) lbl.style.cssText = id===t ? 'display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 14px;border:2px solid #4A0E8F;border-radius:20px;font-size:13px;background:#f0e8ff;font-weight:600' : 'display:flex;align-items:center;gap:5px;cursor:pointer;padding:6px 14px;border:2px solid #d0b8f5;border-radius:20px;font-size:13px';
+    if (sec) sec.style.display = id===t && id!=='all' ? 'block' : 'none';
+  });
+  document.getElementById('t-'+t).checked = true;
+}
+
+targets.forEach(t => {
+  const lbl = document.getElementById('lbl-'+t);
+  if(lbl) lbl.addEventListener('click', () => setTarget(t));
+});
+setTarget('individual');
+
+const msgBox = document.getElementById('msg-box');
+const charCount = document.getElementById('charCount');
+msgBox.addEventListener('input', () => charCount.textContent = msgBox.value.length);
+charCount.textContent = msgBox.value.length;
+
+function applyTemplate(name, msg) {
+  document.getElementById('msg-box').value = msg;
+  document.getElementById('template_name').value = name;
+  charCount.textContent = msg.length;
+}
+</script>
+<%- include('../partials/footer') %>

@@ -1,0 +1,137 @@
+<%- include('../partials/header', { title: 'Edit Student', activePage: 'students' }) %>
+
+<div class="page-header">
+  <div>
+    <h1>✏️ Edit Student</h1>
+    <div class="breadcrumb"><a href="/studentadministration" style="color:rgba(255,255,255,0.8)">Students</a> → Edit</div>
+  </div>
+</div>
+
+<form method="POST" action="/studentadministration/edit/<%= student.id %>">
+
+<div class="form-card">
+  <div class="form-card-header">📚 Academic Details</div>
+  <div class="form-card-body">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Class</label>
+        <select name="class_id" class="form-control">
+          <option value="">Select Class</option>
+          <% classes.forEach(c => { %><option value="<%= c.id %>" <%= student.class_id == c.id ? 'selected' : '' %>><%= c.class_name %> - <%= c.section %></option><% }) %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Admission No. <span class="required">*</span></label>
+        <input type="text" name="admission_no" class="form-control" value="<%= student.admission_no %>" required>
+      </div>
+      <div class="form-group">
+        <label>Roll No.</label>
+        <input type="text" name="roll_no" class="form-control" value="<%= student.roll_no || '' %>">
+      </div>
+      <div class="form-group">
+        <label>Admission Date</label>
+        <input type="date" name="admission_date" class="form-control" value="<%= student.admission_date ? moment(student.admission_date).format('YYYY-MM-DD') : '' %>">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select name="status" class="form-control">
+          <option value="active" <%= student.status === 'active' ? 'selected' : '' %>>Active</option>
+          <option value="inactive" <%= student.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+          <option value="transferred" <%= student.status === 'transferred' ? 'selected' : '' %>>Transferred</option>
+          <option value="passed" <%= student.status === 'passed' ? 'selected' : '' %>>Passed</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>House</label>
+        <select name="house" class="form-control">
+          <option value="">Select</option>
+          <option <%= student.house === 'Indus' ? 'selected' : '' %>>Indus</option>
+          <option <%= student.house === 'Kaveri' ? 'selected' : '' %>>Kaveri</option>
+          <option <%= student.house === 'Narmada' ? 'selected' : '' %>>Narmada</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="form-card">
+  <div class="form-card-header">👤 Personal Details</div>
+  <div class="form-card-body">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>First Name <span class="required">*</span></label>
+        <input type="text" name="first_name" class="form-control" value="<%= student.first_name %>" required>
+      </div>
+      <div class="form-group">
+        <label>Middle Name</label>
+        <input type="text" name="middle_name" class="form-control" value="<%= student.middle_name || '' %>">
+      </div>
+      <div class="form-group">
+        <label>Last Name <span class="required">*</span></label>
+        <input type="text" name="last_name" class="form-control" value="<%= student.last_name %>" required>
+      </div>
+      <div class="form-group">
+        <label>Gender <span class="required">*</span></label>
+        <select name="gender" class="form-control" required>
+          <option value="Male" <%= student.gender === 'Male' ? 'selected' : '' %>>Male</option>
+          <option value="Female" <%= student.gender === 'Female' ? 'selected' : '' %>>Female</option>
+          <option value="Other" <%= student.gender === 'Other' ? 'selected' : '' %>>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Date of Birth</label>
+        <input type="date" name="dob" class="form-control" value="<%= student.dob ? moment(student.dob).format('YYYY-MM-DD') : '' %>">
+      </div>
+      <div class="form-group">
+        <label>Blood Group</label>
+        <select name="blood_group" class="form-control">
+          <option value="">Select</option>
+          <% ['A+','A-','B+','B-','O+','O-','AB+','AB-'].forEach(bg => { %>
+            <option <%= student.blood_group === bg ? 'selected' : '' %>><%= bg %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select name="category" class="form-control">
+          <% ['General','OBC','SC','ST','EWS','OTHER'].forEach(cat => { %>
+            <option <%= student.category === cat ? 'selected' : '' %>><%= cat %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Aadhar No.</label>
+        <input type="text" name="aadhar_no" class="form-control" value="<%= student.aadhar_no || '' %>">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" class="form-control" value="<%= student.email || '' %>">
+      </div>
+      <div class="form-group">
+        <label>Mother Tongue</label>
+        <input type="text" name="mother_tongue" class="form-control" value="<%= student.mother_tongue || '' %>">
+      </div>
+    </div>
+    <div class="form-grid" style="margin-top:12px">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Medical Condition</label>
+        <textarea name="medical_condition" class="form-control" rows="2"><%= student.medical_condition || '' %></textarea>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Notes</label>
+        <textarea name="notes" class="form-control" rows="2"><%= student.notes || '' %></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="form-card">
+  <div class="form-actions">
+    <button type="submit" class="btn btn-purple">💾 Update Student</button>
+    <a href="/studentadministration/view/<%= student.id %>" class="btn btn-outline-purple">Cancel</a>
+  </div>
+</div>
+
+</form>
+
+<%- include('../partials/footer') %>

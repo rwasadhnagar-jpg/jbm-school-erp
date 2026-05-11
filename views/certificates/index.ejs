@@ -1,0 +1,63 @@
+<%- include('../partials/header', { title: 'Certificates & TC', activePage: 'certificates' }) %>
+<div class="page-header">
+  <div><h1>📜 Certificates & TC</h1><div class="breadcrumb">Transfer Certificate · Bonafide · Marksheet</div></div>
+</div>
+
+<div class="toolbar">
+  <a href="/certificates/tc/new" class="btn btn-purple">+ Issue TC</a>
+  <a href="/certificates/bonafide/new" class="btn btn-purple">+ Bonafide</a>
+  <a href="/certificates/marksheet/new" class="btn btn-purple">+ Marksheet</a>
+  <a href="/certificates/marksheet/bulk" class="btn btn-outline-purple">📤 Bulk Marks Upload</a>
+</div>
+
+<div class="table-container" style="margin-top:10px">
+  <div class="table-header" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <h3>Issued Certificates</h3>
+    <form method="GET" action="/certificates" style="display:flex;gap:8px;margin-left:auto">
+      <select name="type" class="form-control" style="width:140px" onchange="this.form.submit()">
+        <option value="">All Types</option>
+        <option value="TC" <%=type==='TC'?'selected':''%>>TC</option>
+        <option value="Bonafide" <%=type==='Bonafide'?'selected':''%>>Bonafide</option>
+        <option value="Marksheet" <%=type==='Marksheet'?'selected':''%>>Marksheet</option>
+      </select>
+      <input type="text" name="search" class="form-control" placeholder="Search student / serial..." value="<%= search||'' %>" style="width:200px">
+      <button type="submit" class="btn btn-purple">Search</button>
+    </form>
+  </div>
+  <table>
+    <thead><tr><th>Serial No.</th><th>Type</th><th>Student</th><th>Class</th><th>Issue Date</th><th>Issued By</th><th>Actions</th></tr></thead>
+    <tbody>
+      <% if(certs.length) { %>
+        <% certs.forEach(c => { %>
+        <tr>
+          <td><strong><%= c.serial_no %></strong></td>
+          <td>
+            <% if(c.type==='TC') { %><span class="badge badge-red">TC</span>
+            <% } else if(c.type==='Bonafide') { %><span class="badge badge-blue">Bonafide</span>
+            <% } else { %><span class="badge badge-green">Marksheet</span><% } %>
+          </td>
+          <td><%= c.first_name %> <%= c.last_name %> <small style="color:#888">(<%= c.admission_no %>)</small></td>
+          <td><%= c.class_name||'—' %> <%= c.section||'' %></td>
+          <td><%= c.issue_date ? new Date(c.issue_date).toLocaleDateString('en-IN') : '—' %></td>
+          <td><%= c.issued_by_name || '—' %></td>
+          <td style="display:flex;gap:6px">
+            <% if(c.type==='TC') { %>
+              <a href="/certificates/tc/print/<%= c.id %>" target="_blank" class="btn btn-outline-purple" style="padding:3px 10px;font-size:12px">🖨 Print</a>
+            <% } else if(c.type==='Bonafide') { %>
+              <a href="/certificates/bonafide/print/<%= c.id %>" target="_blank" class="btn btn-outline-purple" style="padding:3px 10px;font-size:12px">🖨 Print</a>
+            <% } else { %>
+              <a href="/certificates/marksheet/print/<%= c.id %>" target="_blank" class="btn btn-outline-purple" style="padding:3px 10px;font-size:12px">🖨 Print</a>
+            <% } %>
+            <form method="POST" action="/certificates/delete/<%= c.id %>" onsubmit="return confirm('Delete this certificate?')">
+              <button type="submit" class="btn btn-outline-red" style="padding:3px 10px;font-size:12px">🗑</button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+      <% } else { %>
+        <tr><td colspan="7" class="no-data">No certificates issued yet</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

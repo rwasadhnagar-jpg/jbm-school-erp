@@ -1,0 +1,21 @@
+<%- include('../partials/header', { title: 'Hostel', activePage: 'hostel' }) %>
+<div class="page-header"><div><h1>🏠 Hostel Management</h1></div></div>
+<div class="stat-card" style="max-width:200px;margin-bottom:16px">
+  <div class="stat-icon bg-purple">🏠</div>
+  <div><div class="stat-value"><%= rooms.length %></div><div class="stat-label">Total Rooms</div></div>
+</div>
+<div class="table-container">
+  <div class="table-header"><h3>Hostel Rooms</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Room No.</th><th>Type</th><th>Capacity</th><th>Occupied</th><th>Available</th><th>Monthly Fee</th></tr></thead>
+    <tbody>
+      <% if(rooms.length) { rooms.forEach((r,i) => { %>
+      <tr><td><%= i+1 %></td><td><strong><%= r.room_no %></strong></td><td><%= r.room_type||'—' %></td>
+        <td><%= r.capacity %></td><td><%= r.occupied %></td>
+        <td><span class="badge <%= r.capacity-r.occupied>0?'badge-green':'badge-red' %>"><%= r.capacity-r.occupied %></span></td>
+        <td>₹<%= r.monthly_fee ? Number(r.monthly_fee).toLocaleString('en-IN') : '—' %></td></tr>
+      <% }) } else { %><tr><td colspan="7" class="no-data">No rooms set up yet</td></tr><% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

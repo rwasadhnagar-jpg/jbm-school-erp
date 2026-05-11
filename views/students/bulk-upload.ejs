@@ -1,0 +1,42 @@
+﻿<%- include('../partials/header', { title: 'Bulk Upload', activePage: 'students' }) %>
+<div class="page-header"><div><h1>📤 Bulk Upload Students</h1><div class="breadcrumb"><a href="/studentadministration" style="color:rgba(255,255,255,0.8)">Students</a> → Bulk Upload</div></div></div>
+<div class="dashboard-row col-2">
+<div class="form-card">
+  <div class="form-card-header">📤 Upload Excel / CSV File</div>
+  <div class="form-card-body">
+    <div class="alert alert-info">ℹ️ Upload your Excel (.xlsx) or CSV file. Existing students (same Admission No) will be updated.</div>
+    <form method="POST" action="/studentadministration/bulk-upload" enctype="multipart/form-data">
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Select Excel / CSV File <span class="required">*</span></label>
+        <input type="file" name="csvfile" class="form-control" accept=".xlsx,.xls,.csv" required>
+      </div>
+      <div class="form-actions" style="padding:0;border:none;background:none">
+        <button type="submit" class="btn btn-purple">📤 Upload Students</button>
+        <a href="/studentadministration" class="btn btn-outline-purple">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="form-card">
+  <div class="form-card-header">📋 Supported Column Names</div>
+  <div class="form-card-body">
+    <p style="font-size:13px;color:#555;margin-bottom:12px">Your Excel file can use these column headers (your existing format is supported):</p>
+    <table style="font-size:12px;width:100%;border-collapse:collapse">
+      <tr style="background:#f0e6ff"><th style="padding:4px 8px;text-align:left">Excel Column</th><th style="padding:4px 8px;text-align:left">Saves As</th></tr>
+      <tr><td style="padding:3px 8px">AdmissionNumber</td><td style="padding:3px 8px;color:#4A0E8F">Admission No</td></tr>
+      <tr style="background:#fafafa"><td style="padding:3px 8px">Name</td><td style="padding:3px 8px;color:#4A0E8F">First + Last Name</td></tr>
+      <tr><td style="padding:3px 8px">Class</td><td style="padding:3px 8px;color:#4A0E8F">Class (e.g. "Nursery Kaveri")</td></tr>
+      <tr style="background:#fafafa"><td style="padding:3px 8px">Father</td><td style="padding:3px 8px;color:#4A0E8F">Father Name</td></tr>
+      <tr><td style="padding:3px 8px">Mother</td><td style="padding:3px 8px;color:#4A0E8F">Mother Name</td></tr>
+      <tr style="background:#fafafa"><td style="padding:3px 8px">Mobile</td><td style="padding:3px 8px;color:#4A0E8F">Father Mobile</td></tr>
+      <tr><td style="padding:3px 8px">Gender, DOB, Status</td><td style="padding:3px 8px;color:#4A0E8F">Gender, DOB, Status</td></tr>
+      <tr style="background:#fafafa"><td style="padding:3px 8px">StudentType</td><td style="padding:3px 8px;color:#4A0E8F">Day Scholar / Boarder</td></tr>
+      <tr><td style="padding:3px 8px">Present Address</td><td style="padding:3px 8px;color:#4A0E8F">Address</td></tr>
+      <tr style="background:#fafafa"><td style="padding:3px 8px">Employment Category</td><td style="padding:3px 8px;color:#4A0E8F">Category</td></tr>
+    </table>
+    <div style="margin-top:10px;font-size:12px;color:#888">Duplicate Admission Numbers will be updated, not duplicated.</div>
+    <a href="/studentadministration/reports/download" class="btn btn-outline-purple btn-sm" style="margin-top:12px">⬇️ Download Current Students as CSV</a>
+  </div>
+</div>
+</div>
+<%- include('../partials/footer') %>

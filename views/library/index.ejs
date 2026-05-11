@@ -1,0 +1,16 @@
+<%- include('../partials/header', { title: 'Library', activePage: 'library' }) %>
+<div class="page-header"><div><h1>📚 Library Management</h1><div class="breadcrumb">Manage books & issues</div></div></div>
+<div class="toolbar"><a href="#" class="btn btn-purple">+ Add Book</a></div>
+<div class="table-container">
+  <div class="table-header"><h3>Book Catalog</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Title</th><th>Author</th><th>Category</th><th>Total</th><th>Available</th><th>Rack No.</th></tr></thead>
+    <tbody>
+      <% if(books.length) { books.forEach((b,i) => { %>
+      <tr><td><%= i+1 %></td><td><strong><%= b.title %></strong></td><td><%= b.author||'—' %></td><td><%= b.category||'—' %></td>
+        <td><%= b.total_copies %></td><td><span class="badge <%= b.available_copies>0?'badge-green':'badge-red' %>"><%= b.available_copies %></span></td><td><%= b.rack_no||'—' %></td></tr>
+      <% }) } else { %><tr><td colspan="7" class="no-data">No books in catalog yet</td></tr><% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

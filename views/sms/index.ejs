@@ -1,0 +1,73 @@
+<%- include('../partials/header', { title: 'SMS & Communication', activePage: 'sms' }) %>
+<div class="page-header">
+  <div><h1>📱 SMS & Communication</h1><div class="breadcrumb">Message parents · WhatsApp · Templates</div></div>
+</div>
+
+<div class="toolbar">
+  <a href="/sms/compose" class="btn btn-purple">+ Compose Message</a>
+  <a href="/sms/compose?template=fee_reminder" class="btn btn-outline-purple">💰 Fee Reminder</a>
+  <a href="/sms/compose?template=attendance_alert" class="btn btn-outline-purple">📋 Attendance Alert</a>
+  <a href="/sms/compose?template=holiday_notice" class="btn btn-outline-purple">🎉 Holiday Notice</a>
+</div>
+
+<div class="cards-grid" style="grid-template-columns:repeat(3,1fr)">
+  <div class="stat-card"><div class="stat-icon bg-purple">📨</div><div><div class="stat-value"><%= total %></div><div class="stat-label">Total Messages Sent</div></div></div>
+  <div class="stat-card"><div class="stat-icon bg-green">📅</div><div><div class="stat-value"><%= today %></div><div class="stat-label">Sent Today</div></div></div>
+  <div class="stat-card"><div class="stat-icon bg-blue">📋</div><div><div class="stat-value"><%= templates.length %></div><div class="stat-label">Message Templates</div></div></div>
+</div>
+
+<!-- Templates Quick Pick -->
+<div class="form-card" style="margin-bottom:16px">
+  <div class="form-card-header">📋 Message Templates</div>
+  <div class="form-card-body" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+    <% templates.forEach(t => { %>
+    <a href="/sms/compose?template=<%= t.name %>" style="display:block;border:1px solid #d0b8f5;border-radius:6px;padding:10px 12px;color:#4A0E8F;transition:all 0.2s;text-decoration:none" onmouseover="this.style.background='#f7f3ff'" onmouseout="this.style.background=''">
+      <div style="font-weight:600;font-size:13px"><%= t.label %></div>
+      <div style="font-size:11px;color:#888;margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"><%= t.message.substring(0,60) %>...</div>
+    </a>
+    <% }) %>
+  </div>
+</div>
+
+<!-- Message Log -->
+<div class="table-container">
+  <div class="table-header"><h3>Recent Message Log</h3></div>
+  <table>
+    <thead><tr><th>Date</th><th>To</th><th>Mobile</th><th>Message</th><th>Type</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% if(logs.length) { %>
+        <% logs.forEach(l => { %>
+        <tr>
+          <td><%= new Date(l.sent_at).toLocaleDateString('en-IN') %><br><small style="color:#888"><%= new Date(l.sent_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) %></small></td>
+          <td>
+            <% if(l.first_name) { %><strong><%= l.first_name %> <%= l.last_name %></strong><br><small style="color:#888"><%= l.class_name||'' %> <%= l.section||'' %></small>
+            <% } else { %>Custom<% } %>
+          </td>
+          <td><%= l.to_number %></td>
+          <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px"><%= l.message %></td>
+          <td>
+            <% if(l.type==='WhatsApp') { %><span class="badge badge-green">WhatsApp</span>
+            <% } else { %><span class="badge badge-blue">SMS</span><% } %>
+          </td>
+          <td>
+            <% if(l.status==='Sent') { %><span class="badge badge-green">Sent</span>
+            <% } else if(l.status==='Failed') { %><span class="badge badge-red">Failed</span>
+            <% } else { %><span class="badge badge-orange">Pending</span><% } %>
+          </td>
+          <td>
+            <% if(l.to_number && l.to_number !== '0000000000') { %>
+            <a href="https://wa.me/91<%= l.to_number.replace(/\D/g,'') %>?text=<%= encodeURIComponent(l.message) %>" target="_blank" class="btn btn-outline-purple" style="padding:3px 8px;font-size:11px">💬 WA</a>
+            <% } %>
+            <form method="POST" action="/sms/delete/<%= l.id %>" style="display:inline" onsubmit="return confirm('Delete?')">
+              <button class="btn btn-outline-red" style="padding:3px 8px;font-size:11px">🗑</button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+      <% } else { %>
+        <tr><td colspan="7" class="no-data">No messages sent yet</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

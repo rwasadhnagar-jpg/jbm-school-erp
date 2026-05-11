@@ -1,0 +1,20 @@
+<%- include('../partials/header', { title: 'Transport', activePage: 'transport' }) %>
+<div class="page-header"><div><h1>🚌 Transport Management</h1></div></div>
+<div class="cards-grid" style="grid-template-columns:repeat(2,1fr)">
+  <div class="stat-card"><div class="stat-icon bg-blue">🚌</div><div><div class="stat-value"><%= vehicles.length %></div><div class="stat-label">Total Vehicles</div></div></div>
+  <div class="stat-card"><div class="stat-icon bg-green">🗺️</div><div><div class="stat-value"><%= routes.length %></div><div class="stat-label">Routes</div></div></div>
+</div>
+<div class="table-container">
+  <div class="table-header"><h3>Vehicles</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Vehicle No.</th><th>Driver</th><th>Mobile</th><th>Capacity</th><th>Cert. Expiry</th></tr></thead>
+    <tbody>
+      <% if(vehicles.length) { vehicles.forEach((v,i) => { %>
+      <tr><td><%= i+1 %></td><td><strong><%= v.vehicle_no %></strong></td><td><%= v.driver_name||'—' %></td>
+        <td><%= v.driver_mobile||'—' %></td><td><%= v.capacity||'—' %></td>
+        <td><%= v.certificate_expiry ? moment(v.certificate_expiry).format('DD MMM YYYY') : '—' %></td></tr>
+      <% }) } else { %><tr><td colspan="6" class="no-data">No vehicles added yet</td></tr><% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

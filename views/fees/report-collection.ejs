@@ -1,0 +1,60 @@
+﻿<%- include('../partials/header', { title: 'Fee Collection Report', activePage: 'fees' }) %>
+<div class="page-header"><div><h1>💰 Fee Collection Report</h1></div></div>
+<div class="form-card">
+  <div class="form-card-header">🔍 Filter Options</div>
+  <div class="form-card-body">
+    <form method="GET" action="/feemanagement/reports/collection">
+      <div class="form-grid">
+        <div class="form-group"><label>From Date</label><input type="date" name="from_date" class="form-control" value="<%= from_date %>"></div>
+        <div class="form-group"><label>To Date</label><input type="date" name="to_date" class="form-control" value="<%= to_date %>"></div>
+        <div class="form-group"><label>Class</label>
+          <select name="class_id" class="form-control">
+            <option value="">All Classes</option>
+            <% classes.forEach(c => { %><option value="<%= c.id %>" <%= class_id==c.id?'selected':'' %>><%= c.class_name %> - <%= c.section %></option><% }) %>
+          </select>
+        </div>
+        <div class="form-group"><label>Payment Mode</label>
+          <select name="payment_mode" class="form-control">
+            <option value="">All Modes</option>
+            <option <%= payment_mode==='Cash'?'selected':'' %>>Cash</option>
+            <option <%= payment_mode==='UPI'?'selected':'' %>>UPI</option>
+            <option <%= payment_mode==='Online'?'selected':'' %>>Online</option>
+            <option <%= payment_mode==='Cheque'?'selected':'' %>>Cheque</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button type="submit" class="btn btn-purple">🔍 Apply Filter</button>
+        <a href="/feemanagement/reports/download?from_date=<%= from_date %>&to_date=<%= to_date %>" class="btn btn-outline-green">⬇️ Download CSV</a>
+        <a href="/feemanagement" class="btn btn-outline-purple">← Back</a>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="stat-card" style="margin-bottom:16px;max-width:320px">
+  <div class="stat-icon bg-green">💰</div>
+  <div><div class="stat-value">₹<%= Number(total).toLocaleString('en-IN') %></div><div class="stat-label">Total Collection (<%= from_date %> to <%= to_date %>)</div></div>
+</div>
+<div class="table-container">
+  <div class="table-header"><h3>Fee Payments — <%= payments.length %> records</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Receipt No.</th><th>Student</th><th>Class</th><th>Amount</th><th>Date</th><th>Mode</th><th>Remarks</th></tr></thead>
+    <tbody>
+      <% if(payments.length) { payments.forEach((p,i) => { %>
+      <tr>
+        <td><%= i+1 %></td>
+        <td><strong><%= p.receipt_no||'—' %></strong></td>
+        <td><a href="/studentadministration/view/<%= p.student_id %>" style="color:var(--purple)"><%= p.first_name %> <%= p.last_name %></a><br><small style="color:#aaa"><%= p.admission_no %></small></td>
+        <td><%= p.class_name||'—' %> <%= p.section||'' %></td>
+        <td><strong>₹<%= Number(p.amount_paid).toLocaleString('en-IN') %></strong></td>
+        <td><%= moment(p.payment_date).format('DD MMM YYYY') %></td>
+        <td><span class="badge badge-blue"><%= p.payment_mode %></span></td>
+        <td><%= p.remarks||'—' %></td>
+      </tr>
+      <% }) } else { %>
+        <tr><td colspan="8" class="no-data">No payments found for selected period</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

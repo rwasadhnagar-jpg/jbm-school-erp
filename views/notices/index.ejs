@@ -1,0 +1,5 @@
+<%- include('../partials/header', { title: 'Notices', activePage: 'notices' }) %>
+<div class="page-header"><div><h1>📢 Notices</h1></div></div>
+<div class="toolbar"><a href="/notices/add" class="btn btn-purple">+ Add Notice</a></div>
+<div class="table-container"><div class="table-header"><h3>All Notices</h3></div><table><thead><tr><th>#</th><th>Title</th><th>For</th><th>Date</th></tr></thead><tbody><% if(notices.length){notices.forEach((n,i)=>{%><tr><td><%=i+1%></td><td><strong><%=n.title%></strong></td><td><span class="badge badge-blue"><%=n.for_type%></span></td><td><%=n.publish_date?moment(n.publish_date).format("DD MMM YYYY"):"—"%></td></tr><%})}else{%><tr><td colspan="4" class="no-data">No notices yet</td></tr><%}%></tbody></table></div>
+<%- include('../partials/footer') %>

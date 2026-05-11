@@ -1,0 +1,21 @@
+<%- include('../partials/header', { title: 'Admissions', activePage: 'admission' }) %>
+<div class="page-header"><div><h1>📋 Admission Management</h1><div class="breadcrumb">Manage enquiries & registrations</div></div></div>
+<div class="toolbar"><a href="/registration/add" class="btn btn-purple">+ New Enquiry</a></div>
+<div class="table-container">
+  <div class="table-header"><h3>Admission Enquiries</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Enquiry No.</th><th>Student Name</th><th>Class Applied</th><th>Father's Name</th><th>Mobile</th><th>Date</th><th>Status</th></tr></thead>
+    <tbody>
+      <% if(admissions.length) { admissions.forEach((a,i) => { %>
+      <tr>
+        <td><%= i+1 %></td><td><strong><%= a.enquiry_no %></strong></td>
+        <td><strong><%= a.student_name %></strong></td><td><%= a.class_applied||'—' %></td>
+        <td><%= a.father_name||'—' %></td><td><%= a.father_mobile||'—' %></td>
+        <td><%= a.enquiry_date ? moment(a.enquiry_date).format('DD MMM YYYY') : '—' %></td>
+        <td><span class="badge badge-blue"><%= a.status %></span></td>
+      </tr>
+      <% }) } else { %><tr><td colspan="8" class="no-data">No enquiries yet</td></tr><% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

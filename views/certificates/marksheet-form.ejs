@@ -1,0 +1,96 @@
+<%- include('../partials/header', { title: 'Issue Marksheet', activePage: 'certificates' }) %>
+<div class="page-header"><div><h1>📊 Issue Marksheet</h1><div class="breadcrumb"><a href="/certificates" style="color:rgba(255,255,255,0.8)">Certificates</a> → Marksheet</div></div></div>
+
+<div class="form-card" style="max-width:750px">
+  <div class="form-card-header">📊 Marksheet Entry Form</div>
+  <div class="form-card-body">
+    <form method="POST" action="/certificates/marksheet/issue" id="marksheetForm">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="form-group">
+          <label>Select Student <span class="required">*</span></label>
+          <select name="student_id" class="form-control" required>
+            <option value="">-- Select Student --</option>
+            <% students.forEach(s => { %><option value="<%= s.id %>"><%= s.first_name %> <%= s.last_name %> | <%= s.admission_no %> | <%= s.class_name||'' %> <%= s.section||'' %></option><% }) %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Examination Name <span class="required">*</span></label>
+          <select name="exam_name" class="form-control" required>
+            <option>Unit Test 1</option>
+            <option>Half Yearly Examination</option>
+            <option>Unit Test 2</option>
+            <option>Annual Examination</option>
+            <option>Pre-Board Examination</option>
+            <option>Board Examination</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="form-group">
+          <label>Academic Year</label>
+          <input type="text" name="academic_year" class="form-control" value="2026-2027">
+        </div>
+        <div class="form-group">
+          <label>Issue Date</label>
+          <input type="date" name="issue_date" class="form-control" value="<%= new Date().toISOString().split('T')[0] %>">
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <label style="font-weight:600;display:block;margin-bottom:8px">Subjects & Marks</label>
+        <div id="subjects-container">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 36px;gap:8px;align-items:center;margin-bottom:8px;font-size:12px;color:#888;font-weight:600">
+            <span>Subject Name</span><span>Max Marks</span><span>Marks Obtained</span><span></span>
+          </div>
+          <% const defaultSubjects = ['Hindi','English','Mathematics','Science','Social Science']; %>
+          <% defaultSubjects.forEach((sub, i) => { %>
+          <div class="subject-row" style="display:grid;grid-template-columns:2fr 1fr 1fr 36px;gap:8px;align-items:center;margin-bottom:8px">
+            <input type="text" name="subject" class="form-control" value="<%= sub %>" placeholder="Subject name" required>
+            <input type="number" name="max_marks" class="form-control mark-max" value="100" min="1" max="200">
+            <input type="number" name="obtained" class="form-control mark-obt" min="0" max="200" placeholder="0" required>
+            <% if(i > 0) { %>
+            <button type="button" class="btn btn-outline-red remove-row" style="padding:6px 10px;font-size:13px">✕</button>
+            <% } else { %>
+            <span></span>
+            <% } %>
+          </div>
+          <% }) %>
+        </div>
+        <button type="button" id="addSubject" class="btn btn-outline-purple" style="margin-top:4px;font-size:13px">+ Add Subject</button>
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Remarks</label>
+        <input type="text" name="remarks" class="form-control" placeholder="e.g. Student has shown excellent progress">
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-purple">📊 Generate Marksheet</button>
+        <a href="/certificates" class="btn btn-outline-purple">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.getElementById('addSubject').addEventListener('click', () => {
+  const container = document.getElementById('subjects-container');
+  const row = document.createElement('div');
+  row.className = 'subject-row';
+  row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr 36px;gap:8px;align-items:center;margin-bottom:8px';
+  row.innerHTML = `
+    <input type="text" name="subject" class="form-control" placeholder="Subject name" required>
+    <input type="number" name="max_marks" class="form-control mark-max" value="100" min="1" max="200">
+    <input type="number" name="obtained" class="form-control mark-obt" min="0" max="200" placeholder="0" required>
+    <button type="button" class="btn btn-outline-red remove-row" style="padding:6px 10px;font-size:13px">✕</button>
+  `;
+  container.appendChild(row);
+});
+
+document.getElementById('subjects-container').addEventListener('click', (e) => {
+  if (e.target.classList.contains('remove-row')) {
+    e.target.closest('.subject-row').remove();
+  }
+});
+</script>
+<%- include('../partials/footer') %>

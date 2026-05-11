@@ -1,0 +1,43 @@
+<%- include('../partials/header', { title: 'Staff Management', activePage: 'staff' }) %>
+<div class="page-header"><div><h1>👩‍🏫 Staff Management</h1><div class="breadcrumb">Total: <%= total %> active staff</div></div></div>
+<div class="toolbar">
+  <a href="/teachers/add" class="btn btn-purple">+ Add Staff</a>
+  <div class="dropdown">
+    <button class="btn btn-outline-purple">Filter by Type ▾</button>
+    <div class="dropdown-menu">
+      <a href="/teachers">All</a>
+      <a href="/teachers?staff_type=Teaching">Teaching</a>
+      <a href="/teachers?staff_type=Non-Teaching">Non-Teaching</a>
+    </div>
+  </div>
+</div>
+<div class="table-container">
+  <div class="table-header">
+    <h3>Staff List</h3>
+    <form method="GET" action="/teachers" class="search-bar">
+      <div class="search-input-wrap"><span class="search-icon">🔍</span><input type="text" name="search" value="<%= search||'' %>" placeholder="Search name..." class="form-control form-control-sm"></div>
+      <button type="submit" class="btn btn-purple btn-sm">Search</button>
+    </form>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Name</th><th>Staff Type</th><th>Department</th><th>Designation</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      <% if(staff.length) { staff.forEach((s,i) => { %>
+      <tr>
+        <td><%= i+1 %></td>
+        <td><strong><%= s.first_name %> <%= s.last_name %></strong></td>
+        <td><span class="badge badge-blue"><%= s.staff_type %></span></td>
+        <td><%= s.department||'—' %></td>
+        <td><%= s.designation||'—' %></td>
+        <td><%= s.phone||'—' %></td>
+        <td><span class="badge badge-green">Active</span></td>
+        <td><a href="#" class="btn btn-outline-purple btn-xs">✏️ Edit</a></td>
+      </tr>
+      <% }) } else { %>
+        <tr><td colspan="8" class="no-data">No staff found</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+  <div class="table-footer">Showing <%= staff.length %> of <%= total %> staff</div>
+</div>
+<%- include('../partials/footer') %>

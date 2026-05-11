@@ -1,0 +1,26 @@
+<%- include('../partials/header', { title: 'Student Attendance', activePage: 'attendance' }) %>
+<div class="page-header"><div><h1>✅ Student Attendance</h1><div class="breadcrumb">Manage daily attendance</div></div></div>
+<div class="toolbar">
+  <a href="/attday/take" class="btn btn-purple">📝 Take Attendance</a>
+  <a href="/attday/take?date=<%= new Date().toISOString().split('T')[0] %>" class="btn btn-outline-purple">Today's Attendance</a>
+</div>
+<div class="dashboard-widget" style="max-width:500px">
+  <div class="widget-header">📅 Take Attendance for a Class</div>
+  <div class="widget-body">
+    <form method="GET" action="/attday/take">
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Select Class</label>
+        <select name="class_id" class="form-control" required>
+          <option value="">-- Select Class --</option>
+          <% classes.forEach(c => { %><option value="<%= c.id %>"><%= c.class_name %> - <%= c.section %></option><% }) %>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Date</label>
+        <input type="date" name="date" class="form-control" value="<%= new Date().toISOString().split('T')[0] %>">
+      </div>
+      <button type="submit" class="btn btn-purple">Go →</button>
+    </form>
+  </div>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,397 @@
+<%- include('../partials/header', { title: 'Add Student', activePage: 'students' }) %>
+
+<div class="page-header">
+  <div>
+    <h1>➕ Add New Student</h1>
+    <div class="breadcrumb"><a href="/studentadministration" style="color:rgba(255,255,255,0.8)">Students</a> → Add Student</div>
+  </div>
+</div>
+
+<form method="POST" action="/studentadministration/add" enctype="multipart/form-data">
+
+<!-- Section 1: Academic Details -->
+<div class="form-card">
+  <div class="form-card-header">📚 Section 1 — Academic Details</div>
+  <div class="form-card-body">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Class <span class="required">*</span></label>
+        <select name="class_id" class="form-control" required>
+          <option value="">Select Class</option>
+          <% classes.forEach(c => { %><option value="<%= c.id %>"><%= c.class_name %> - <%= c.section %></option><% }) %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Admission No. <span class="required">*</span></label>
+        <input type="text" name="admission_no" class="form-control" required placeholder="e.g. JBM2026001">
+      </div>
+      <div class="form-group">
+        <label>Admission Date</label>
+        <input type="date" name="admission_date" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Roll No.</label>
+        <input type="text" name="roll_no" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Student Status <span class="required">*</span></label>
+        <select name="status" class="form-control">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Day Scholar / Boarding</label>
+        <select name="day_scholar" class="form-control">
+          <option value="Day Scholar">Day Scholar</option>
+          <option value="Boarding">Boarding</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>House</label>
+        <select name="house" class="form-control">
+          <option value="">Select</option>
+          <option>Indus</option><option>Kaveri</option><option>Narmada</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Fee Group</label>
+        <select name="fee_group_id" class="form-control">
+          <option value="">Select Fee Group</option>
+          <% feeGroups.forEach(g => { %><option value="<%= g.id %>"><%= g.name %></option><% }) %>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 2: Personal Details -->
+<div class="form-card">
+  <div class="form-card-header">👤 Section 2 — Student Personal Details</div>
+  <div class="form-card-body">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>First Name <span class="required">*</span></label>
+        <input type="text" name="first_name" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label>Middle Name</label>
+        <input type="text" name="middle_name" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Last Name <span class="required">*</span></label>
+        <input type="text" name="last_name" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label>Gender <span class="required">*</span></label>
+        <select name="gender" class="form-control" required>
+          <option value="">Select</option>
+          <option>Male</option><option>Female</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Date of Birth</label>
+        <input type="date" name="dob" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Blood Group</label>
+        <select name="blood_group" class="form-control">
+          <option value="">Select</option>
+          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+          <option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select name="category" class="form-control">
+          <option>General</option><option>OBC</option><option>SC</option>
+          <option>ST</option><option>EWS</option><option>OTHER</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Religion</label>
+        <input type="text" name="religion" class="form-control" placeholder="e.g. Hindu">
+      </div>
+      <div class="form-group">
+        <label>Aadhar Card No.</label>
+        <input type="text" name="aadhar_no" class="form-control" maxlength="12">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="email" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Nationality</label>
+        <input type="text" name="nationality" class="form-control" value="Indian">
+      </div>
+      <div class="form-group">
+        <label>Mother Tongue</label>
+        <input type="text" name="mother_tongue" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Caste</label>
+        <input type="text" name="caste" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Place of Birth</label>
+        <input type="text" name="place_of_birth" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Height (cm)</label>
+        <input type="number" name="height_cm" class="form-control" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>Weight (kg)</label>
+        <input type="number" name="weight_kg" class="form-control" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>SRN No.</label>
+        <input type="text" name="srn_no" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Samagra ID</label>
+        <input type="text" name="samagra_id" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>APAAR ID</label>
+        <input type="text" name="apaar_id" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>PEN No.</label>
+        <input type="text" name="pen_no" class="form-control">
+      </div>
+    </div>
+    <div class="form-grid" style="margin-top:12px">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Medical Condition / Allergies</label>
+        <textarea name="medical_condition" class="form-control" rows="2"></textarea>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Notes</label>
+        <textarea name="notes" class="form-control" rows="2"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:20px;margin-top:12px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" name="is_ews"> EWS Student
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" name="is_special_child"> Special Child
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" name="is_physically_disabled"> Physically Disabled
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- Section 3: Father's Details -->
+<div class="form-card">
+  <div class="form-card-header">👨 Section 3 — Father's Details</div>
+  <div class="form-card-body">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Salutation</label>
+        <select name="father_salutation" class="form-control">
+          <option value="">Select</option><option>Mr.</option><option>Dr.</option><option>Prof.</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>First Name <span class="required">*</span></label>
+        <input type="text" name="father_first_name" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Last Name</label>
+        <input type="text" name="father_last_name" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Mobile <span class="required">*</span></label>
+        <input type="tel" name="father_mobile" class="form-control" maxlength="10">
+      </div>
+      <div class="form-group">
+        <label>WhatsApp / SMS No.</label>
+        <input type="tel" name="father_sms_no" class="form-control" maxlength="10">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="father_email" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Occupation</label>
+        <input type="text" name="father_occupation" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Qualification</label>
+        <input type="text" name="father_qualification" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Annual Income (₹)</label>
+        <input type="number" name="father_income" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Designation</label>
+        <input type="text" name="father_designation" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Aadhar No.</label>
+        <input type="text" name="father_aadhar" class="form-control" maxlength="12">
+      </div>
+      <div class="form-group">
+        <label>PAN No.</label>
+        <input type="text" name="father_pan" class="form-control" maxlength="10">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 4: Mother's Details -->
+<div class="form-card">
+  <div class="form-card-header">👩 Section 4 — Mother's Details</div>
+  <div class="form-card-body">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>First Name</label>
+        <input type="text" name="mother_first_name" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Last Name</label>
+        <input type="text" name="mother_last_name" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Mobile</label>
+        <input type="tel" name="mother_mobile" class="form-control" maxlength="10">
+      </div>
+      <div class="form-group">
+        <label>WhatsApp / SMS No.</label>
+        <input type="tel" name="mother_sms_no" class="form-control" maxlength="10">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" name="mother_email" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Occupation</label>
+        <input type="text" name="mother_occupation" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Qualification</label>
+        <input type="text" name="mother_qualification" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Annual Income (₹)</label>
+        <input type="number" name="mother_income" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Aadhar No.</label>
+        <input type="text" name="mother_aadhar" class="form-control" maxlength="12">
+      </div>
+      <div class="form-group">
+        <label>PAN No.</label>
+        <input type="text" name="mother_pan" class="form-control" maxlength="10">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 5: Present Address -->
+<div class="form-card">
+  <div class="form-card-header">🏠 Section 5 — Present Address</div>
+  <div class="form-card-body">
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Address</label>
+        <textarea name="present_address" class="form-control" rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label>State</label>
+        <select name="present_state" class="form-control">
+          <option value="">Select State</option>
+          <option>Andhra Pradesh</option><option>Arunachal Pradesh</option><option>Assam</option>
+          <option>Bihar</option><option>Chhattisgarh</option><option>Goa</option>
+          <option>Gujarat</option><option>Haryana</option><option>Himachal Pradesh</option>
+          <option>Jharkhand</option><option>Karnataka</option><option>Kerala</option>
+          <option>Madhya Pradesh</option><option>Maharashtra</option><option>Manipur</option>
+          <option>Meghalaya</option><option>Mizoram</option><option>Nagaland</option>
+          <option>Odisha</option><option>Punjab</option><option>Rajasthan</option>
+          <option>Sikkim</option><option>Tamil Nadu</option><option>Telangana</option>
+          <option>Tripura</option><option>Uttar Pradesh</option><option>Uttarakhand</option>
+          <option>West Bengal</option><option>Delhi</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>City</label>
+        <input type="text" name="present_city" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>District</label>
+        <input type="text" name="present_district" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Pin Code</label>
+        <input type="text" name="present_pin" class="form-control" maxlength="6">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 6: Previous School -->
+<div class="form-card">
+  <div class="form-card-header">🏫 Section 6 — Previous School Details</div>
+  <div class="form-card-body">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>School Name</label>
+        <input type="text" name="prev_school_name" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Class</label>
+        <input type="text" name="prev_school_class" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>Date of Leaving</label>
+        <input type="date" name="prev_leaving_date" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>TC Number</label>
+        <input type="text" name="prev_tc_no" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>UDISE Code</label>
+        <input type="text" name="prev_udise" class="form-control">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 7: Photos -->
+<div class="form-card">
+  <div class="form-card-header">📷 Section 7 — Photos (max 1MB each)</div>
+  <div class="form-card-body">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Student Photo</label>
+        <input type="file" name="student_photo" class="form-control" accept="image/*">
+      </div>
+      <div class="form-group">
+        <label>Father Photo</label>
+        <input type="file" name="father_photo" class="form-control" accept="image/*">
+      </div>
+      <div class="form-group">
+        <label>Mother Photo</label>
+        <input type="file" name="mother_photo" class="form-control" accept="image/*">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Actions -->
+<div class="form-card">
+  <div class="form-actions">
+    <button type="submit" class="btn btn-purple">💾 Save Student</button>
+    <a href="/studentadministration" class="btn btn-outline-purple">Cancel</a>
+  </div>
+</div>
+
+</form>
+
+<%- include('../partials/footer') %>

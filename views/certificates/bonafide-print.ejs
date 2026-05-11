@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bonafide — <%= cert.serial_no %></title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Times New Roman', Times, serif; background: #f0f0f0; color: #111; font-size: 15px; }
+
+    .cert-wrapper {
+      max-width: 780px;
+      margin: 30px auto;
+      background: #fff;
+      border: 4px double #4A0E8F;
+      padding: 40px 50px;
+      min-height: 500px;
+      position: relative;
+    }
+
+    .cert-header { display: flex; align-items: center; gap: 18px; border-bottom: 2px solid #4A0E8F; padding-bottom: 16px; margin-bottom: 20px; }
+    .cert-header-logo img { width: 80px; height: 80px; object-fit: contain; }
+    .cert-header-text { flex: 1; text-align: center; }
+    .cert-header h1 { font-size: 28px; color: #4A0E8F; letter-spacing: 2px; font-weight: 800; }
+    .cert-header h2 { font-size: 13px; font-weight: 600; color: #333; margin-top: 3px; }
+    .cert-header p { font-size: 12px; color: #555; margin-top: 3px; line-height: 1.6; }
+
+    .cert-title { text-align: center; font-size: 22px; font-weight: bold; letter-spacing: 4px; text-decoration: underline; color: #4A0E8F; margin: 20px 0 30px; }
+
+    .cert-body { font-size: 16px; line-height: 2.2; text-align: justify; }
+    .cert-body .field { font-weight: bold; border-bottom: 1px solid #333; padding: 0 4px; display: inline-block; min-width: 180px; }
+
+    .serial-date { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 20px; }
+
+    .cert-footer { display: flex; justify-content: space-between; margin-top: 50px; font-size: 13px; }
+    .sig-block { text-align: center; }
+    .sig-line { border-top: 1px solid #333; width: 160px; margin: 36px auto 4px; }
+
+    .print-actions { text-align: center; padding: 16px; background: #f5f5f5; display: flex; gap: 10px; justify-content: center; }
+    .btn-print { background: #4A0E8F; color: #fff; border: none; padding: 10px 28px; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600; }
+    .btn-close { background: #fff; color: #4A0E8F; border: 2px solid #4A0E8F; padding: 10px 24px; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 600; }
+
+    @media print {
+      body { background: #fff; }
+      .print-actions { display: none; }
+      .cert-wrapper { margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="cert-wrapper">
+  <div class="cert-header">
+    <div class="cert-header-logo">
+      <img src="/img/logo.png" alt="JBM Logo">
+    </div>
+    <div class="cert-header-text">
+      <h1>JBM PUBLIC SCHOOL</h1>
+      <h2>RZ 666/1, 3&4 Nasirpur Road, Sadh Nagar, Palam, New Delhi - 110045</h2>
+      <p>Ph: 9868337627 | 9891251352 &nbsp;|&nbsp; Email: jbmpschool@gmail.com &nbsp;|&nbsp; www.jbmpschool.com</p>
+      <p>CBSE Affiliation No: <strong>2730708</strong> &nbsp;|&nbsp; School ID: <strong>1821201</strong></p>
+    </div>
+  </div>
+
+  <div class="cert-title">BONAFIDE CERTIFICATE</div>
+
+  <div class="serial-date">
+    <span>Ref. No.: <strong><%= cert.serial_no %></strong></span>
+    <span>Date: <strong><%= new Date(cert.issue_date).toLocaleDateString('en-IN', {day:'2-digit',month:'long',year:'numeric'}) %></strong></span>
+  </div>
+
+  <div class="cert-body">
+    <p>
+      This is to certify that <span class="field"><%= cert.first_name %> <%= cert.last_name %></span>
+      <%if(cert.gender==='Male'){%>S/o<%}else if(cert.gender==='Female'){%>D/o<%}else{%>C/o<%}%>
+      <span class="field"><%= cert.father_name || '—' %></span>
+      is a bonafide student of this school. He/She is currently studying in
+      <span class="field">Class <%= cert.class_name || '—' %> - <%= cert.section || '' %></span>
+      during the academic year <span class="field">2026-2027</span>.
+    </p>
+    <br>
+    <p>
+      His/Her date of birth as per school records is
+      <span class="field"><%= cert.dob ? new Date(cert.dob).toLocaleDateString('en-IN', {day:'2-digit',month:'long',year:'numeric'}) : '—' %></span>.
+      His/Her admission number is <span class="field"><%= cert.admission_no %></span>.
+    </p>
+    <br>
+    <p>
+      This certificate is issued for the purpose of
+      <span class="field"><%= cert.data.purpose || 'General Purpose' %></span>
+      on the request of the parent/guardian.
+    </p>
+    <% if(cert.data.remarks) { %>
+    <br><p><em>Remarks: <%= cert.data.remarks %></em></p>
+    <% } %>
+  </div>
+
+  <div class="cert-footer">
+    <div class="sig-block">
+      <div class="sig-line"></div>
+      <div>Class Teacher</div>
+    </div>
+    <div class="sig-block">
+      <div class="sig-line"></div>
+      <div>Principal / Head of School</div>
+    </div>
+  </div>
+
+  <p style="text-align:center;font-size:11px;color:#aaa;margin-top:28px">School Seal & Stamp | Issued by: <%= cert.issued_by_name||'Admin' %> | <%= new Date().toLocaleDateString('en-IN') %></p>
+</div>
+
+<div class="print-actions">
+  <button class="btn-print" onclick="window.print()">🖨️ Print Certificate</button>
+  <a href="/certificates" style="text-decoration:none"><button class="btn-close">← Back to List</button></a>
+</div>
+
+</body>
+</html>

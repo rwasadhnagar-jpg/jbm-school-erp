@@ -1,0 +1,8 @@
+node_modules/
+.env
+backups/
+public/uploads/
+server.log
+server-err.log
+cookie3.txt
+*.zip

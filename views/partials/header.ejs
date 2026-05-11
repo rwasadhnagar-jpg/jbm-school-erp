@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — JBM ERP</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-brand">
+    <img src="/img/logo.png" alt="JBM Logo" style="height:38px;width:38px;object-fit:contain;border-radius:50%;background:#fff;padding:2px;" onerror="this.style.display='none'">
+    <span>JBM Public School</span>
+    <span class="school-badge">ERP</span>
+  </div>
+  <div class="navbar-right">
+    <span class="user-info">👤 <span><%= user.name %></span> (<%= user.role %>)</span>
+    <span style="color:rgba(255,255,255,0.4)">|</span>
+    <span style="color:#fff;font-size:12px;opacity:0.8;">AY: <%= academicYear %></span>
+    <a href="/logout">Logout</a>
+  </div>
+</nav>
+
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <a href="/dashboard" class="sidebar-item <%= activePage === 'dashboard' ? 'active' : '' %>">
+      <span class="icon">📊</span><span class="label">Dashboard</span>
+    </a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Academic</div>
+    <a href="/timetablemanagement" class="sidebar-item <%= activePage === 'timetable' ? 'active' : '' %>">
+      <span class="icon">📅</span><span class="label">Timetable</span>
+    </a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Administration</div>
+    <a href="/studentadministration" class="sidebar-item <%= activePage === 'students' ? 'active' : '' %>">
+      <span class="icon">👨‍🎓</span><span class="label">Students</span>
+    </a>
+    <a href="/teachers" class="sidebar-item <%= activePage === 'staff' ? 'active' : '' %>">
+      <span class="icon">👩‍🏫</span><span class="label">Staff</span>
+    </a>
+    <a href="/attday" class="sidebar-item <%= activePage === 'attendance' ? 'active' : '' %>">
+      <span class="icon">✅</span><span class="label">Attendance</span>
+    </a>
+    <a href="/lms" class="sidebar-item <%= activePage === 'library' ? 'active' : '' %>">
+      <span class="icon">📚</span><span class="label">Library</span>
+    </a>
+    <a href="/transport" class="sidebar-item <%= activePage === 'transport' ? 'active' : '' %>">
+      <span class="icon">🚌</span><span class="label">Transport</span>
+    </a>
+    <a href="/hostel" class="sidebar-item <%= activePage === 'hostel' ? 'active' : '' %>">
+      <span class="icon">🏠</span><span class="label">Hostel</span>
+    </a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Certificates</div>
+    <a href="/certificates" class="sidebar-item <%= activePage === 'certificates' ? 'active' : '' %>">
+      <span class="icon">📜</span><span class="label">TC & Certificates</span>
+    </a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Communication</div>
+    <a href="/sms" class="sidebar-item <%= activePage === 'sms' ? 'active' : '' %>">
+      <span class="icon">📱</span><span class="label">SMS & WhatsApp</span>
+    </a>
+    <a href="/notices" class="sidebar-item <%= activePage === 'notices' ? 'active' : '' %>">
+      <span class="icon">📢</span><span class="label">Notices</span>
+    </a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Financial</div>
+    <a href="/registration" class="sidebar-item <%= activePage === 'admission' ? 'active' : '' %>">
+      <span class="icon">📋</span><span class="label">Admissions</span>
+    </a>
+    <a href="/feemanagement" class="sidebar-item <%= activePage === 'fees' ? 'active' : '' %>">
+      <span class="icon">💰</span><span class="label">Fee Management</span>
+    </a>
+    <a href="/sal" class="sidebar-item <%= activePage === 'salary' ? 'active' : '' %>">
+      <span class="icon">💵</span><span class="label">Salary</span>
+    </a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Setup</div>
+    <a href="/configuration" class="sidebar-item <%= activePage === 'config' ? 'active' : '' %>">
+      <span class="icon">⚙️</span><span class="label">Configuration</span>
+    </a>
+    <a href="/configuration/backup" class="sidebar-item <%= activePage === 'backup' ? 'active' : '' %>">
+      <span class="icon">🗄️</span><span class="label">DB Backup</span>
+    </a>
+  </div>
+</aside>
+
+<main class="main-content">
+  <% if (success && success.length) { %>
+    <div class="alert alert-success">✅ <%= success[0] %></div>
+  <% } %>
+  <% if (error && error.length) { %>
+    <div class="alert alert-error">⚠️ <%= error[0] %></div>
+  <% } %>
