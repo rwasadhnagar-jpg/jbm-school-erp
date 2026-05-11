@@ -90,8 +90,8 @@
       </div>
       <div class="form-group">
         <label>Date of Birth</label>
-        <input type="date" name="dob" required>
-        <div class="hint">Your date of birth as registered with school</div>
+        <input type="text" name="dob" placeholder="DD/MM/YYYY" pattern="\d{2}/\d{2}/\d{4}" maxlength="10" required autocomplete="off">
+        <div class="hint">Enter in DD/MM/YYYY format (e.g. 15/08/2010)</div>
       </div>
       <button type="submit" class="btn-login">Login to My Portal →</button>
     </form>

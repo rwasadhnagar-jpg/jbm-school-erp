@@ -35,11 +35,12 @@ router.post('/login', async (req, res) => {
       return res.redirect('/portal/login');
     }
 
-    // Check DOB matches
+    // Check DOB matches (input format: DD/MM/YYYY)
     const dbDob = student.dob ? new Date(student.dob).toISOString().split('T')[0] : null;
-    const inputDob = new Date(dob).toISOString().split('T')[0];
+    const parts = dob.trim().split('/');
+    const inputDob = parts.length === 3 ? `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}` : null;
 
-    if (!dbDob || dbDob !== inputDob) {
+    if (!dbDob || !inputDob || dbDob !== inputDob) {
       req.flash('error', 'Date of Birth does not match our records');
       return res.redirect('/portal/login');
     }
