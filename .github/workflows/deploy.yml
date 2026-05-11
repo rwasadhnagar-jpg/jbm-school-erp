@@ -26,33 +26,13 @@ jobs:
             -e "ssh -o StrictHostKeyChecking=no -p 65002" \
             . u502587017@191.101.230.15:~/domains/erp.jbmpschool.in/
 
-      - name: Create .env and restart app
+      - name: Write .env and restart app
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -e ssh -o StrictHostKeyChecking=no -p 65002 u502587017@191.101.230.15 "
-            cd ~/domains/erp.jbmpschool.in
-
-            # Write .env with production values
-            cat > .env << 'ENVEOF'
-PORT=8080
-DB_HOST=srv621.hstgr.io
-DB_USER=u502587017_motivateducate
-DB_PASSWORD=JBM@erp2026!
-DB_NAME=u502587017_jbm
-SESSION_SECRET=jbmerp_secret_2026
-SCHOOL_NAME=JBM Public School
-SCHOOL_CODE=JBMPS
-ACADEMIC_YEAR=2026-2027
-ENVEOF
-
-            echo '.env written'
-
-            # Install dependencies
-            npm install --production --silent 2>/dev/null || true
-
-            # Touch server.js to trigger app restart
-            touch server.js
-
-            echo 'Deployed OK'
-          "
+          sshpass -e ssh -o StrictHostKeyChecking=no -p 65002 u502587017@191.101.230.15 \
+            "cd ~/domains/erp.jbmpschool.in && \
+            printf 'PORT=8080\nDB_HOST=srv621.hstgr.io\nDB_USER=u502587017_motivateducate\nDB_PASSWORD=JBM@erp2026!\nDB_NAME=u502587017_jbm\nSESSION_SECRET=jbmerp_secret_2026\nSCHOOL_NAME=JBM Public School\nSCHOOL_CODE=JBMPS\nACADEMIC_YEAR=2026-2027\n' > .env && \
+            npm install --production --silent 2>/dev/null || true && \
+            touch server.js && \
+            echo 'Deployed OK'"
