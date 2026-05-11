@@ -3,13 +3,13 @@ const router = express.Router();
 const db = require('../db');
 
 const requireStudent = (req, res, next) => {
-  if (!req.session.student) return res.redirect('/student/login');
+  if (!req.session.student) return res.redirect('/portal/login');
   next();
 };
 
 // LOGIN PAGE
 router.get('/login', (req, res) => {
-  if (req.session.student) return res.redirect('/student/dashboard');
+  if (req.session.student) return res.redirect('/portal/dashboard');
   res.render('student/login', { title: 'Student Portal — JBM School', error: req.flash('error'), success: req.flash('success') });
 });
 
@@ -19,7 +19,7 @@ router.post('/login', async (req, res) => {
     const { admission_no, dob } = req.body;
     if (!admission_no || !dob) {
       req.flash('error', 'Please enter Admission Number and Date of Birth');
-      return res.redirect('/student/login');
+      return res.redirect('/portal/login');
     }
 
     const [[student]] = await db.query(
@@ -32,7 +32,7 @@ router.post('/login', async (req, res) => {
 
     if (!student) {
       req.flash('error', 'Admission number not found or student is inactive');
-      return res.redirect('/student/login');
+      return res.redirect('/portal/login');
     }
 
     // Check DOB matches
@@ -41,7 +41,7 @@ router.post('/login', async (req, res) => {
 
     if (!dbDob || dbDob !== inputDob) {
       req.flash('error', 'Date of Birth does not match our records');
-      return res.redirect('/student/login');
+      return res.redirect('/portal/login');
     }
 
     req.session.student = {
@@ -53,11 +53,11 @@ router.post('/login', async (req, res) => {
       dob: student.dob
     };
 
-    res.redirect('/student/dashboard');
+    res.redirect('/portal/dashboard');
   } catch (err) {
     console.error(err);
     req.flash('error', 'Login failed. Please try again.');
-    res.redirect('/student/login');
+    res.redirect('/portal/login');
   }
 });
 
@@ -65,7 +65,7 @@ router.post('/login', async (req, res) => {
 router.get('/logout', (req, res) => {
   req.session.student = null;
   req.flash('success', 'Logged out successfully');
-  res.redirect('/student/login');
+  res.redirect('/portal/login');
 });
 
 // DASHBOARD
@@ -113,7 +113,7 @@ router.get('/dashboard', requireStudent, async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.redirect('/student/login');
+    res.redirect('/portal/login');
   }
 });
 
@@ -133,10 +133,10 @@ router.get('/receipt/:payment_id', requireStudent, async (req, res) => {
        WHERE fp.id = ? AND fp.student_id = ?`,
       [req.params.payment_id, req.session.student.id]
     );
-    if (!payment) return res.redirect('/student/dashboard');
+    if (!payment) return res.redirect('/portal/dashboard');
     res.render('fees/receipt', { payment });
   } catch (err) {
-    res.redirect('/student/dashboard');
+    res.redirect('/portal/dashboard');
   }
 });
 
