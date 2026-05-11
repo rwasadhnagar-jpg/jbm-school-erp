@@ -15,14 +15,13 @@ jobs:
 
       - name: Deploy via SFTP
         env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           lftp -c "
             set sftp:auto-confirm yes;
             set sftp:connect-program 'sshpass -e ssh -o StrictHostKeyChecking=no';
             set net:max-retries 3;
             open sftp://u502587017@191.101.230.15:65002;
-            user u502587017 $SSH_PASSWORD;
             mirror --reverse --delete --verbose \
               --exclude=^\.git \
               --exclude=^node_modules/ \
