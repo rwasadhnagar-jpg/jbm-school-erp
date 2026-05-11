@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Portal — JBM Public School</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #4A0E8F 0%, #7B2FBE 50%, #4A0E8F 100%); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+
+    .login-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      width: 100%;
+      max-width: 420px;
+      overflow: hidden;
+    }
+
+    .login-header {
+      background: #fff;
+      text-align: center;
+      padding: 28px 24px 18px;
+      border-bottom: 3px solid #4A0E8F;
+    }
+    .login-header img { width: 80px; height: 80px; object-fit: contain; margin-bottom: 10px; }
+    .login-header h1 { font-size: 20px; color: #4A0E8F; font-weight: 800; letter-spacing: 1px; }
+    .login-header p { font-size: 12px; color: #666; margin-top: 3px; }
+
+    .portal-badge {
+      background: #4A0E8F;
+      color: #fff;
+      text-align: center;
+      padding: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+
+    .login-body { padding: 28px 32px 24px; }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 6px; }
+    .form-group input {
+      width: 100%; padding: 11px 14px; border: 1.5px solid #ddd;
+      border-radius: 8px; font-size: 14px; transition: border-color 0.2s;
+    }
+    .form-group input:focus { outline: none; border-color: #4A0E8F; box-shadow: 0 0 0 3px rgba(74,14,143,0.1); }
+
+    .hint { font-size: 11px; color: #999; margin-top: 4px; }
+
+    .btn-login {
+      width: 100%; padding: 13px; background: #4A0E8F; color: #fff;
+      border: none; border-radius: 8px; font-size: 15px; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.5px; transition: background 0.2s;
+    }
+    .btn-login:hover { background: #3a0b72; }
+
+    .alert-error { background: #fff0f0; border: 1px solid #ffcccc; color: #c0392b; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
+    .alert-success { background: #f0fff4; border: 1px solid #b7f5c8; color: #1a7a3c; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
+
+    .login-footer { text-align: center; padding: 14px; background: #f9f9f9; border-top: 1px solid #eee; font-size: 12px; color: #888; }
+    .login-footer a { color: #4A0E8F; text-decoration: none; font-weight: 600; }
+
+    .divider { text-align: center; font-size: 11px; color: #bbb; margin: 16px 0; }
+  </style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="login-header">
+    <img src="/img/logo.png" alt="JBM Logo">
+    <h1>JBM PUBLIC SCHOOL</h1>
+    <p>RZ 666/1, Nasirpur Road, Palam, New Delhi - 110045</p>
+  </div>
+  <div class="portal-badge">🎓 STUDENT PORTAL</div>
+  <div class="login-body">
+    <% if (error && error.length) { %>
+      <div class="alert-error">⚠️ <%= error[0] %></div>
+    <% } %>
+    <% if (success && success.length) { %>
+      <div class="alert-success">✅ <%= success[0] %></div>
+    <% } %>
+
+    <form method="POST" action="/student/login">
+      <div class="form-group">
+        <label>Admission Number</label>
+        <input type="text" name="admission_no" placeholder="e.g. 7225" required autocomplete="off" autofocus>
+        <div class="hint">Enter your admission number as given by school</div>
+      </div>
+      <div class="form-group">
+        <label>Date of Birth</label>
+        <input type="date" name="dob" required>
+        <div class="hint">Your date of birth as registered with school</div>
+      </div>
+      <button type="submit" class="btn-login">Login to My Portal →</button>
+    </form>
+
+    <div class="divider">Having trouble? Contact school office</div>
+    <div style="text-align:center;font-size:12px;color:#888">
+      📞 9868337627 &nbsp;|&nbsp; 9891251352
+    </div>
+  </div>
+  <div class="login-footer">
+    School Staff? <a href="/login">Admin Login →</a>
+  </div>
+</div>
+
+</body>
+</html>

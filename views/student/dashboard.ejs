@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Portal — JBM School</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f0fa; color: #222; min-height: 100vh; }
+
+    /* Top Navbar */
+    .navbar {
+      background: #4A0E8F;
+      color: #fff;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(74,14,143,0.3);
+    }
+    .navbar-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+    .navbar-brand img { width: 34px; height: 34px; object-fit: contain; background:#fff; border-radius:50%; padding:2px; }
+    .navbar-right { display: flex; align-items: center; gap: 16px; font-size: 13px; }
+    .navbar-right a { color: rgba(255,255,255,0.85); text-decoration: none; }
+    .navbar-right a:hover { color: #fff; }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+
+    /* Welcome banner */
+    .welcome-banner {
+      background: linear-gradient(135deg, #4A0E8F, #7B2FBE);
+      color: #fff;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .welcome-banner h2 { font-size: 20px; font-weight: 800; }
+    .welcome-banner p { font-size: 13px; opacity: 0.85; margin-top: 3px; }
+    .student-badge { background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+    .stat-card { background: #fff; border-radius: 10px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid #4A0E8F; }
+    .stat-card .stat-label { font-size: 12px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .stat-value { font-size: 22px; font-weight: 800; color: #4A0E8F; margin-top: 4px; }
+    .stat-card.green { border-left-color: #28a745; }
+    .stat-card.green .stat-value { color: #28a745; }
+    .stat-card.orange { border-left-color: #FF6B00; }
+    .stat-card.orange .stat-value { color: #FF6B00; }
+
+    /* Cards */
+    .card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 20px; overflow: hidden; }
+    .card-header { background: #4A0E8F; color: #fff; padding: 12px 18px; font-weight: 700; font-size: 14px; }
+    .card-body { padding: 16px 18px; }
+
+    /* Info table */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; }
+    .info-item { padding: 7px 10px; background: #f7f3ff; border-radius: 6px; }
+    .info-item .lbl { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; }
+    .info-item .val { font-weight: 600; color: #222; margin-top: 2px; }
+
+    /* Fee table */
+    .fee-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .fee-table th { background: #4A0E8F; color: #fff; padding: 10px 12px; text-align: left; }
+    .fee-table td { padding: 9px 12px; border-bottom: 1px solid #f0e6ff; }
+    .fee-table tr:last-child td { border-bottom: none; }
+    .fee-table tr:hover td { background: #faf5ff; }
+    .badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .badge-cash { background: #e8f5e9; color: #2e7d32; }
+    .badge-online { background: #e3f2fd; color: #1565c0; }
+    .badge-cheque { background: #fff3e0; color: #e65100; }
+    .badge-upi { background: #f3e5f5; color: #6a1b9a; }
+
+    .btn { display: inline-block; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; }
+    .btn-purple { background: #4A0E8F; color: #fff; }
+    .btn-outline { background: #fff; color: #4A0E8F; border: 1.5px solid #4A0E8F; }
+
+    .empty-state { text-align: center; padding: 30px; color: #aaa; font-size: 14px; }
+
+    .alert-error { background: #fff0f0; border: 1px solid #ffcccc; color: #c0392b; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
+    .alert-success { background: #f0fff4; border: 1px solid #b7f5c8; color: #1a7a3c; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
+
+    /* Pay box */
+    .pay-box {
+      background: linear-gradient(135deg, #fff8e1, #fffde7);
+      border: 2px solid #FF6B00;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 20px;
+    }
+    .pay-box h3 { color: #FF6B00; font-size: 15px; margin-bottom: 8px; }
+    .pay-box p { font-size: 13px; color: #555; line-height: 1.7; }
+    .pay-box .upi-id { font-size: 16px; font-weight: 800; color: #4A0E8F; background: #f0e6ff; padding: 6px 14px; border-radius: 6px; display: inline-block; margin: 8px 0; letter-spacing: 1px; }
+
+    @media (max-width: 600px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .info-grid { grid-template-columns: 1fr; }
+      .welcome-banner { flex-direction: column; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-brand">
+    <img src="/img/logo.png" alt="JBM">
+    <span>JBM Public School</span>
+    <span style="background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:12px;font-size:11px">Student Portal</span>
+  </div>
+  <div class="navbar-right">
+    <span>👤 <%= student.first_name %> <%= student.last_name %></span>
+    <span style="color:rgba(255,255,255,0.3)">|</span>
+    <a href="/student/logout">Logout</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <% if (error && error.length) { %><div class="alert-error">⚠️ <%= error[0] %></div><% } %>
+  <% if (success && success.length) { %><div class="alert-success">✅ <%= success[0] %></div><% } %>
+
+  <!-- Welcome -->
+  <div class="welcome-banner">
+    <div>
+      <h2>Welcome, <%= student.first_name %>! 👋</h2>
+      <p>Class: <%= student.class_name %> - <%= student.section %> &nbsp;|&nbsp; Adm No: <%= student.admission_no %></p>
+    </div>
+    <div class="student-badge">AY: 2026–2027</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card green">
+      <div class="stat-label">Total Paid</div>
+      <div class="stat-value">₹<%= Number(totalPaid).toLocaleString('en-IN') %></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Payments Made</div>
+      <div class="stat-value"><%= payments.length %></div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">Last Payment</div>
+      <div class="stat-value" style="font-size:14px">
+        <% if (payments.length) { %>
+          <%= new Date(payments[0].payment_date).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) %>
+        <% } else { %>—<% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- How to Pay -->
+  <div class="pay-box">
+    <h3>💳 How to Pay Fees</h3>
+    <p>You can pay your school fees via <strong>UPI / Online Transfer</strong> or visit the school office.</p>
+    <div>UPI ID: <span class="upi-id">jbmpschool@gmail.com</span></div>
+    <p style="margin-top:6px">After paying, <strong>show the payment screenshot at the school office</strong> to get your receipt issued in the ERP. For queries call: <strong>9868337627</strong></p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+
+    <!-- Student Info -->
+    <div class="card">
+      <div class="card-header">👨‍🎓 My Details</div>
+      <div class="card-body">
+        <div class="info-grid">
+          <div class="info-item"><div class="lbl">Full Name</div><div class="val"><%= student.first_name %> <%= student.last_name %></div></div>
+          <div class="info-item"><div class="lbl">Admission No</div><div class="val"><%= student.admission_no %></div></div>
+          <div class="info-item"><div class="lbl">Class</div><div class="val"><%= student.class_name %> - <%= student.section %></div></div>
+          <div class="info-item"><div class="lbl">Gender</div><div class="val"><%= student.gender || '—' %></div></div>
+          <% if (student.dob) { %>
+          <div class="info-item"><div class="lbl">Date of Birth</div><div class="val"><%= new Date(student.dob).toLocaleDateString('en-IN', {day:'2-digit',month:'long',year:'numeric'}) %></div></div>
+          <% } %>
+          <% if (student.roll_no) { %>
+          <div class="info-item"><div class="lbl">Roll No</div><div class="val"><%= student.roll_no %></div></div>
+          <% } %>
+          <% if (father) { %>
+          <div class="info-item" style="grid-column:1/-1"><div class="lbl">Father's Name</div><div class="val"><%= father.first_name %> <%= father.last_name || '' %></div></div>
+          <% } %>
+          <% if (father && father.mobile) { %>
+          <div class="info-item"><div class="lbl">Contact</div><div class="val"><%= father.mobile %></div></div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Certificates -->
+    <div class="card">
+      <div class="card-header">📜 My Documents</div>
+      <div class="card-body" style="padding:0">
+        <% if (!certs.length) { %>
+          <div class="empty-state">No documents issued yet</div>
+        <% } else { %>
+        <table class="fee-table">
+          <thead><tr><th>Type</th><th>Serial No</th><th>Date</th><th></th></tr></thead>
+          <tbody>
+            <% certs.forEach(c => { %>
+            <tr>
+              <td><%= c.type %></td>
+              <td style="font-family:monospace;font-size:12px"><%= c.serial_no %></td>
+              <td><%= new Date(c.issue_date).toLocaleDateString('en-IN') %></td>
+              <td>
+                <% if (c.type === 'Marksheet') { %>
+                  <a href="/certificates/marksheet/print/<%= c.id %>" target="_blank" class="btn btn-outline" style="font-size:11px;padding:3px 8px">Print</a>
+                <% } %>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } %>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Fee Payment History -->
+  <div class="card">
+    <div class="card-header">💰 Fee Payment History</div>
+    <div class="card-body" style="padding:0">
+      <% if (!payments.length) { %>
+        <div class="empty-state">No fee payments recorded yet.<br><span style="font-size:12px">Visit school office to pay fees.</span></div>
+      <% } else { %>
+      <table class="fee-table">
+        <thead>
+          <tr>
+            <th>Receipt No</th>
+            <th>Date</th>
+            <th>Amount</th>
+            <th>Mode</th>
+            <th>Remarks</th>
+            <th>Receipt</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% payments.forEach(p => { %>
+          <tr>
+            <td style="font-family:monospace;font-size:12px"><%= p.receipt_no %></td>
+            <td><%= new Date(p.payment_date).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) %></td>
+            <td><strong style="color:#4A0E8F">₹<%= Number(p.amount_paid).toLocaleString('en-IN') %></strong></td>
+            <td><span class="badge badge-<%= (p.payment_mode||'cash').toLowerCase().replace(/\s+/g,'') %>"><%= p.payment_mode %></span></td>
+            <td style="font-size:12px;color:#888"><%= p.remarks || '—' %></td>
+            <td><a href="/student/receipt/<%= p.id %>" target="_blank" class="btn btn-outline" style="font-size:11px;padding:3px 8px">🖨️ Print</a></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <div style="padding:10px 14px;background:#f7f3ff;font-size:13px;text-align:right;font-weight:700;color:#4A0E8F">
+        Total Paid: ₹<%= Number(totalPaid).toLocaleString('en-IN') %>
+      </div>
+      <% } %>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -64,8 +64,10 @@ const noticeRoutes = require('./routes/notices');
 const configRoutes = require('./routes/config');
 const certificateRoutes = require('./routes/certificates');
 const smsRoutes = require('./routes/sms');
+const portalRoutes = require('./routes/student');
 
 app.use('/', authRoutes);
+app.use('/student', portalRoutes);
 app.use('/dashboard', requireLogin, dashboardRoutes);
 app.use('/studentadministration', requireLogin, studentRoutes);
 app.use('/feemanagement', requireLogin, feeRoutes);
