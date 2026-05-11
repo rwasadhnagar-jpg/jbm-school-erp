@@ -8,20 +8,20 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - uses: actions/checkout@v4
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          host: ${{ secrets.SSH_HOST }}
-          port: ${{ secrets.SSH_PORT }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ~/htdocs/erp.jbmpschool.in
-            if [ -d ".git" ]; then
-              git pull origin master
-            else
-              git clone https://github.com/rwasadhnagar-jpg/jbm-school-erp.git .
-            fi
-            npm install --production --silent
-            touch server.js
-            echo "Deployed at $(date)"
+          server: 191.101.230.15
+          username: u502587017.erp.jbmpschool.in
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 21
+          server-dir: /htdocs/erp.jbmpschool.in/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.env
+            **/backups/**
+            **/*.log
