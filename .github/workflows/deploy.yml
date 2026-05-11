@@ -10,18 +10,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: 191.101.230.15
-          username: u502587017.erp.jbmpschool.in
-          password: ${{ secrets.FTP_PASSWORD }}
-          port: 21
-          server-dir: /htdocs/erp.jbmpschool.in/
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/.env
-            **/backups/**
-            **/*.log
+      - name: Install lftp
+        run: sudo apt-get install -y lftp
+
+      - name: Deploy via SFTP
+        env:
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          lftp -c "
+            set sftp:auto-confirm yes;
+            set net:max-retries 3;
+            open sftp://u502587017.erp.jbmpschool.in:$FTP_PASSWORD@191.101.230.15:65002;
+            mirror --reverse --delete --verbose \
+              --exclude=^\.git \
+              --exclude=^node_modules/ \
+              --exclude=^\.env \
+              --exclude=^backups/ \
+              --exclude=.*\.log\$ \
+              . /htdocs/erp.jbmpschool.in/;
+            bye
+          "
