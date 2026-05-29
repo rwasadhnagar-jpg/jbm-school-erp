@@ -1,0 +1,73 @@
+<%- include('../partials/header', { title: 'Salary Settings', activePage: 'salary' }) %>
+
+<div class="page-header">
+  <div>
+    <h1>⚙️ Salary Settings</h1>
+    <div class="breadcrumb">Salary Management &bull; Default Percentages &amp; Bank Details</div>
+  </div>
+  <a href="/sal" class="btn btn-outline">← Back to PBR</a>
+</div>
+
+<form method="POST" action="/sal/settings">
+  <div class="cards-grid" style="grid-template-columns:1fr 1fr;">
+
+    <div class="card">
+      <div class="card-header"><h3>Default Salary Percentages</h3></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>DA % (Dearness Allowance)</label>
+          <input type="number" name="da_percent" value="<%=settings.daPercent%>" step="0.5" min="0" max="100" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>HRA % (House Rent Allowance)</label>
+          <input type="number" name="hra_percent" value="<%=settings.hraPercent%>" step="0.5" min="0" max="100" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>PF % (Provident Fund)</label>
+          <input type="number" name="pf_percent" value="<%=settings.pfPercent%>" step="0.5" min="0" max="100" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>ESI % (Employee State Insurance)</label>
+          <input type="number" name="esi_percent" value="<%=settings.esiPercent%>" step="0.01" min="0" max="100" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>Default Working Days per Month</label>
+          <input type="number" name="working_days" value="<%=settings.workingDays%>" min="1" max="31" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>Auto-Fit: Adjust Last N Staff (default)</label>
+          <input type="number" name="adjust_n" value="<%=settings.adjustN%>" min="1" max="100" class="form-control" required>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>Bank Letter Details</h3></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>Bank Name</label>
+          <input type="text" name="bank_name" value="<%=settings.bankName%>" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>Bank Branch / Address</label>
+          <input type="text" name="bank_branch" value="<%=settings.bankBranch%>" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Principal / Authorised Signatory Name</label>
+          <input type="text" name="principal_name" value="<%=settings.principalName%>" class="form-control" required>
+        </div>
+        <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;padding:12px;margin-top:16px;font-size:13px;color:#6b21a8;">
+          <strong>Note:</strong> School name, address, and phone are taken from <a href="/configuration">Configuration</a> settings.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:16px;">
+    <button type="submit" class="btn btn-purple">Save Settings</button>
+    <a href="/sal" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
+  </div>
+</form>
+
+<%- include('../partials/footer') %>

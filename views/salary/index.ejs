@@ -1,19 +1,299 @@
-<%- include('../partials/header', { title: 'Salary', activePage: 'salary' }) %>
-<div class="page-header"><div><h1>💵 Salary Management</h1></div></div>
-<div class="table-container">
-  <div class="table-header"><h3>Salary Payments</h3></div>
+<%- include('../partials/header', { title: 'Pay Bill Register', activePage: 'salary' }) %>
+
+<style>
+.pbr-controls { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,0.08); margin-bottom:16px; }
+.pbr-ctrl { display:flex; flex-direction:column; gap:4px; }
+.pbr-ctrl label { font-size:11px; font-weight:600; color:#666; text-transform:uppercase; }
+.pbr-ctrl input, .pbr-ctrl select { border:1px solid #ddd; border-radius:5px; padding:6px 8px; font-size:13px; width:90px; }
+.pbr-ctrl.wide input { width:130px; }
+.pbr-action-btns { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-left:auto; }
+.budget-bar { display:flex; flex-wrap:wrap; gap:16px; align-items:center; background:#fff; padding:12px 16px; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,0.08); margin-bottom:16px; }
+.budget-item .blabel { font-size:11px; color:#888; font-weight:600; text-transform:uppercase; }
+.budget-item .bvalue { font-size:18px; font-weight:700; color:#4A0E8F; }
+.budget-item.diff-pos .bvalue { color:#16a34a; }
+.budget-item.diff-neg .bvalue { color:#dc2626; }
+.export-btns { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+.pbr-table-wrap { overflow-x:auto; background:#fff; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+.pbr-table-wrap table { width:100%; border-collapse:collapse; font-size:12px; min-width:1100px; }
+.pbr-table-wrap thead th { background:#4A0E8F; color:#fff; padding:8px 6px; text-align:center; white-space:nowrap; font-size:11px; position:sticky; top:0; z-index:1; }
+.pbr-table-wrap tbody td { padding:6px; border-bottom:1px solid #f0f0f0; text-align:center; }
+.pbr-table-wrap tbody td.left { text-align:left; }
+.pbr-table-wrap tfoot td { padding:8px 6px; font-weight:700; background:#f9f0ff; border-top:2px solid #4A0E8F; text-align:center; }
+.pbr-table-wrap tbody tr:hover { background:#faf5ff; }
+tr.row-on-leave { background:#fff8e1 !important; }
+tr.row-on-leave td { border-left:3px solid #f9a825; }
+.on-leave-badge { display:inline-block; font-size:9px; font-weight:600; color:#e65100; background:#fff3e0; border:1px solid #ffb74d; border-radius:3px; padding:1px 4px; margin-left:3px; }
+.inline-input { width:72px; border:1px solid #e5e7eb; border-radius:4px; padding:3px 5px; font-size:12px; text-align:right; background:#fafafa; }
+.inline-input:focus { outline:none; border-color:#4A0E8F; background:#fff; }
+.net-pay { font-weight:700; color:#4A0E8F; }
+.no-staff { text-align:center; padding:40px; color:#999; }
+@media print {
+  .sidebar,.navbar,.pbr-controls,.budget-bar,.page-header,.alert-success,.alert-error { display:none !important; }
+  .main-content { margin:0 !important; padding:0 !important; }
+  .pbr-table-wrap { box-shadow:none; overflow:visible; }
+  .pbr-table-wrap table { min-width:0; font-size:9px; }
+}
+</style>
+
+<div class="page-header">
+  <div>
+    <h1>💵 Pay Bill Register</h1>
+    <div class="breadcrumb">Salary Management &bull; Generate PBR &bull; Export Excel &amp; Bank Letter</div>
+  </div>
+  <a href="/sal/settings" class="btn btn-outline">⚙️ Salary Settings</a>
+</div>
+
+<!-- Controls -->
+<div class="pbr-controls">
+  <div class="pbr-ctrl">
+    <label>Month</label>
+    <select id="selMonth" style="width:110px;">
+      <option value="1">January</option><option value="2">February</option>
+      <option value="3">March</option><option value="4">April</option>
+      <option value="5">May</option><option value="6">June</option>
+      <option value="7">July</option><option value="8">August</option>
+      <option value="9">September</option><option value="10">October</option>
+      <option value="11">November</option><option value="12">December</option>
+    </select>
+  </div>
+  <div class="pbr-ctrl"><label>Year</label><input type="number" id="selYear" value="2026" min="2020" max="2040"></div>
+  <div class="pbr-ctrl"><label>DA %</label><input type="number" id="daPercent" value="<%=settings.daPercent%>" min="0" max="100" step="0.5"></div>
+  <div class="pbr-ctrl"><label>HRA %</label><input type="number" id="hraPercent" value="<%=settings.hraPercent%>" min="0" max="100" step="0.5"></div>
+  <div class="pbr-ctrl"><label>Working Days</label><input type="number" id="workingDays" value="<%=settings.workingDays%>" min="1" max="31"></div>
+  <div class="pbr-ctrl"><label>PF %</label><input type="number" id="pfPercent" value="<%=settings.pfPercent%>" min="0" max="100" step="0.5"></div>
+  <div class="pbr-ctrl"><label>ESI %</label><input type="number" id="esiPercent" value="<%=settings.esiPercent%>" min="0" max="100" step="0.01"></div>
+  <div class="pbr-ctrl wide"><label>Budget Target (&#8377;)</label><input type="number" id="budgetTarget" placeholder="e.g. 800000" style="width:130px;"></div>
+  <div class="pbr-ctrl"><label>Adjust Last N</label><input type="number" id="adjustN" value="<%=settings.adjustN%>" min="1" max="100"></div>
+  <div class="pbr-action-btns">
+    <button class="btn btn-outline btn-sm" onclick="loadMonth()">Load Saved</button>
+    <button class="btn btn-purple btn-sm" onclick="saveMonth()">Save</button>
+    <button class="btn btn-sm" style="background:#6d28d9;color:#fff;" onclick="autoFitBudget()">Auto-Fit</button>
+    <button class="btn btn-sm" style="background:#64748b;color:#fff;" onclick="clearBasicOverrides()">Reset Basic</button>
+  </div>
+</div>
+
+<!-- Budget Bar -->
+<div class="budget-bar">
+  <div class="budget-item"><div class="blabel">Total Gross</div><div class="bvalue" id="sumGross">&#8377;0</div></div>
+  <div class="budget-item"><div class="blabel">Total Deductions</div><div class="bvalue" id="sumDed">&#8377;0</div></div>
+  <div class="budget-item"><div class="blabel">Total Net Pay</div><div class="bvalue" id="sumNet">&#8377;0</div></div>
+  <div class="budget-item" id="budgetDiffWrap" style="display:none;"><div class="blabel">Budget Diff</div><div class="bvalue" id="budgetDiff">&#8377;0</div></div>
+  <div class="budget-item" id="suggestionWrap" style="display:none;"><div class="blabel">Suggestion</div><div class="bvalue" style="font-size:12px;max-width:200px;line-height:1.4;" id="suggestion"></div></div>
+  <div class="export-btns">
+    <button class="btn btn-success btn-sm" onclick="exportExcel()">Export Excel</button>
+    <button class="btn btn-outline btn-sm" onclick="window.print()">Print PBR</button>
+    <button class="btn btn-purple btn-sm" onclick="exportBankLetter()">Bank Letter PDF</button>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="pbr-table-wrap">
   <table>
-    <thead><tr><th>#</th><th>Staff Name</th><th>Month/Year</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Status</th></tr></thead>
-    <tbody>
-      <% if(payments.length) { payments.forEach((p,i) => { %>
-      <tr><td><%= i+1 %></td><td><strong><%= p.first_name %> <%= p.last_name %></strong></td>
-        <td><%= p.month %>/<%= p.year %></td>
-        <td>₹<%= Number(p.gross_salary).toLocaleString('en-IN') %></td>
-        <td>₹<%= Number(p.total_deductions).toLocaleString('en-IN') %></td>
-        <td><strong>₹<%= Number(p.net_salary).toLocaleString('en-IN') %></strong></td>
-        <td><span class="badge <%= p.status==='Paid'?'badge-green':'badge-orange' %>"><%= p.status %></span></td></tr>
-      <% }) } else { %><tr><td colspan="7" class="no-data">No salary records yet</td></tr><% } %>
-    </tbody>
+    <thead>
+      <tr>
+        <th>S.No</th><th>Name</th><th>Designation</th><th>Pay Scale</th><th>Basic Pay</th>
+        <th id="hDA">DA</th><th id="hHRA">HRA</th><th>Gross</th>
+        <th>Work Days</th><th>Leave Days</th><th>Days Worked</th><th>Payable Gross</th>
+        <th id="hPF">PF</th><th id="hESI">ESI</th><th>TDS</th><th>Loan/Adv</th>
+        <th>Total Ded.</th><th>Net Pay</th><th>Account No.</th>
+      </tr>
+    </thead>
+    <tbody id="pbrBody"><tr><td colspan="19" class="no-staff">Loading staff data...</td></tr></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="4" style="text-align:left;">TOTAL</td>
+        <td id="fBasic"></td><td id="fDA"></td><td id="fHRA"></td><td id="fGross"></td>
+        <td></td><td></td><td></td><td id="fPayable"></td>
+        <td id="fPF"></td><td id="fESI"></td><td id="fTDS"></td><td id="fLoan"></td>
+        <td id="fDed"></td><td id="fNet"></td><td></td>
+      </tr>
+    </tfoot>
   </table>
 </div>
+
+<script>
+let staffList = [];
+let overrides = {};
+const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function fmt(n){return '₹'+Math.round(n).toLocaleString('en-IN');}
+function num(n){return Math.round(n).toLocaleString('en-IN');}
+
+function getControls(){
+  return {
+    month: parseInt(document.getElementById('selMonth').value),
+    year: parseInt(document.getElementById('selYear').value),
+    daPercent: parseFloat(document.getElementById('daPercent').value)||0,
+    hraPercent: parseFloat(document.getElementById('hraPercent').value)||0,
+    pfPercent: parseFloat(document.getElementById('pfPercent').value)||0,
+    esiPercent: parseFloat(document.getElementById('esiPercent').value)||0,
+    workingDays: parseInt(document.getElementById('workingDays').value)||26,
+    budget: parseFloat(document.getElementById('budgetTarget').value)||0,
+  };
+}
+
+function calcRow(s, ctrl){
+  const ov=overrides[s.id]||{};
+  const da=ctrl.daPercent/100, hra=ctrl.hraPercent/100, wDays=ctrl.workingDays;
+  const leaveDays=ov.leaveDays!=null?ov.leaveDays:(ov.daysWorked!=null?wDays-ov.daysWorked:0);
+  const dWorked=Math.max(0,wDays-leaveDays);
+  const basic=ov.basicPay!=null?ov.basicPay:s.basicPay;
+  const daAmt=Math.round(basic*da), hraAmt=Math.round(basic*hra);
+  const gross=basic+daAmt+hraAmt;
+  const payableGross=Math.round(gross*dWorked/wDays);
+  const pf=s.pfApplicable?Math.round(basic*ctrl.pfPercent/100):0;
+  const esi=s.esiApplicable?Math.round(gross*ctrl.esiPercent/100):0;
+  const tds=ov.tds||0, loan=ov.loan||0;
+  const totalDed=pf+esi+tds+loan;
+  return {basic,daAmt,hraAmt,gross,wDays,dWorked,leaveDays,payableGross,pf,esi,tds,loan,totalDed,netPay:payableGross-totalDed};
+}
+
+function renderTable(){
+  const ctrl=getControls();
+  document.getElementById('hDA').textContent=`DA (${ctrl.daPercent}%)`;
+  document.getElementById('hHRA').textContent=`HRA (${ctrl.hraPercent}%)`;
+  document.getElementById('hPF').textContent=`PF (${ctrl.pfPercent}%)`;
+  document.getElementById('hESI').textContent=`ESI (${ctrl.esiPercent}%)`;
+  const tbody=document.getElementById('pbrBody');
+  tbody.innerHTML='';
+  let t={basic:0,da:0,hra:0,gross:0,payable:0,pf:0,esi:0,tds:0,loan:0,ded:0,net:0};
+  staffList.forEach((s,i)=>{
+    const c=calcRow(s,ctrl);
+    t.basic+=c.basic;t.da+=c.daAmt;t.hra+=c.hraAmt;t.gross+=c.gross;t.payable+=c.payableGross;
+    t.pf+=c.pf;t.esi+=c.esi;t.tds+=c.tds;t.loan+=c.loan;t.ded+=c.totalDed;t.net+=c.netPay;
+    const tr=document.createElement('tr');
+    if(c.leaveDays>0)tr.classList.add('row-on-leave');
+    tr.innerHTML=`<td>${i+1}</td><td class="left">${s.name}</td><td>${s.designation}</td><td>${s.payScale||''}</td>
+      <td><input class="inline-input" type="number" min="0" value="${c.basic}" onchange="setOv(${s.id},'basicPay',this.value)"></td>
+      <td>${num(c.daAmt)}</td><td>${num(c.hraAmt)}</td><td><strong>${num(c.gross)}</strong></td>
+      <td>${c.wDays}</td>
+      <td><input class="inline-input" type="number" min="0" max="${c.wDays}" value="${c.leaveDays}" onchange="setOv(${s.id},'leaveDays',this.value)" style="width:48px"></td>
+      <td><strong>${c.dWorked}</strong>${c.leaveDays>0?'<span class="on-leave-badge">Leave</span>':''}</td>
+      <td><strong>${num(c.payableGross)}</strong></td>
+      <td>${num(c.pf)}</td><td>${num(c.esi)}</td>
+      <td><input class="inline-input" type="number" min="0" value="${c.tds}" onchange="setOv(${s.id},'tds',this.value)"></td>
+      <td><input class="inline-input" type="number" min="0" value="${c.loan}" onchange="setOv(${s.id},'loan',this.value)"></td>
+      <td>${num(c.totalDed)}</td><td class="net-pay">${num(c.netPay)}</td>
+      <td style="font-size:10px">${s.accountNo||'&mdash;'}</td>`;
+    tbody.appendChild(tr);
+  });
+  ['fBasic','fDA','fHRA','fGross','fPayable','fPF','fESI','fTDS','fLoan','fDed','fNet'].forEach((id,i)=>{
+    const keys=['basic','da','hra','gross','payable','pf','esi','tds','loan','ded','net'];
+    document.getElementById(id).textContent=num(t[keys[i]]);
+  });
+  document.getElementById('sumGross').textContent=fmt(t.gross);
+  document.getElementById('sumDed').textContent=fmt(t.ded);
+  document.getElementById('sumNet').textContent=fmt(t.net);
+  if(ctrl.budget>0){
+    const diff=ctrl.budget-t.net;
+    const N=Math.max(1,parseInt(document.getElementById('adjustN').value)||12);
+    document.getElementById('budgetDiffWrap').style.display='block';
+    document.getElementById('suggestionWrap').style.display='block';
+    document.getElementById('budgetDiffWrap').className='budget-item '+(diff>=0?'diff-pos':'diff-neg');
+    document.getElementById('budgetDiff').textContent=(diff>=0?'+':'')+fmt(diff);
+    document.getElementById('suggestion').textContent=diff===0?'Exactly on budget!':diff<0?`Auto-Fit will reduce basic of last ${N} staff by ~${fmt(Math.abs(diff/N))}/staff`:`Within budget. Auto-Fit can raise basic of last ${N} staff by ~${fmt(diff/N)}/staff`;
+  }else{
+    document.getElementById('budgetDiffWrap').style.display='none';
+    document.getElementById('suggestionWrap').style.display='none';
+  }
+}
+
+function setOv(id,field,val){
+  if(!overrides[id])overrides[id]={};
+  overrides[id][field]=parseFloat(val)||0;
+  renderTable();
+}
+
+async function loadMonth(){
+  const ctrl=getControls();
+  const data=await fetch(`/sal/api/month/${ctrl.year}/${ctrl.month}`).then(r=>r.json());
+  if(!data){alert('No saved data for this month.');return;}
+  document.getElementById('daPercent').value=data.daPercent;
+  document.getElementById('hraPercent').value=data.hraPercent;
+  document.getElementById('pfPercent').value=data.pfPercent;
+  document.getElementById('esiPercent').value=data.esiPercent;
+  document.getElementById('workingDays').value=data.workingDays;
+  overrides=data.overrides||{};
+  renderTable();
+}
+
+async function saveMonth(){
+  const ctrl=getControls();
+  await fetch(`/sal/api/month/${ctrl.year}/${ctrl.month}`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({daPercent:ctrl.daPercent,hraPercent:ctrl.hraPercent,pfPercent:ctrl.pfPercent,esiPercent:ctrl.esiPercent,workingDays:ctrl.workingDays,overrides})
+  });
+  alert('Saved successfully!');
+}
+
+function getPayload(){
+  const ctrl=getControls();
+  return {
+    rows:staffList.map((s,i)=>{const c=calcRow(s,ctrl);return{sno:i+1,id:s.id,name:s.name,designation:s.designation,payScale:s.payScale||'',accountNo:s.accountNo||'',basicPay:c.basic,daAmt:c.daAmt,hraAmt:c.hraAmt,gross:c.gross,workDays:c.wDays,leaveDays:c.leaveDays,daysWorked:c.dWorked,payableGross:c.payableGross,pf:c.pf,esi:c.esi,tds:c.tds,loan:c.loan,totalDed:c.totalDed,netPay:c.netPay};}),
+    daPercent:ctrl.daPercent,hraPercent:ctrl.hraPercent,pfPercent:ctrl.pfPercent,esiPercent:ctrl.esiPercent,
+    monthLabel:months[ctrl.month-1]+' '+ctrl.year
+  };
+}
+
+async function exportExcel(){
+  const ctrl=getControls();
+  const res=await fetch('/sal/export/excel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(getPayload())});
+  const blob=await res.blob();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`PBR_${months[ctrl.month-1]}_${ctrl.year}.xlsx`;a.click();
+}
+
+async function exportBankLetter(){
+  const res=await fetch('/sal/export/bank-letter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(getPayload())});
+  const blob=await res.blob();
+  window.open(URL.createObjectURL(blob),'_blank');
+}
+
+function autoFitBudget(){
+  const ctrl=getControls();
+  if(!ctrl.budget){alert('Set a Budget Target first.');return;}
+  const N=Math.max(1,parseInt(document.getElementById('adjustN').value)||12);
+  const da=ctrl.daPercent/100,hra=ctrl.hraPercent/100,wDays=ctrl.workingDays;
+  let cur=0;
+  staffList.forEach(s=>{const ov=overrides[s.id]||{};const leave=ov.leaveDays!=null?ov.leaveDays:0;const dW=Math.max(0,wDays-leave);const basic=ov.basicPay!=null?ov.basicPay:s.basicPay;const gross=basic*(1+da+hra);const payable=Math.round(gross*dW/wDays);const pf=s.pfApplicable?Math.round(basic*ctrl.pfPercent/100):0;const esi=s.esiApplicable?Math.round(gross*ctrl.esiPercent/100):0;cur+=payable-pf-esi-(ov.tds||0)-(ov.loan||0);});
+  const gap=ctrl.budget-cur;
+  if(Math.abs(gap)<1){alert('Already on budget!');return;}
+  const ts=staffList.slice(-N);let mNet=0;
+  ts.forEach(s=>{const ov=overrides[s.id]||{};const leave=ov.leaveDays!=null?ov.leaveDays:0;const dW=Math.max(0,wDays-leave);const mP=(1+da+hra)*(dW/wDays);const mPF=s.pfApplicable?ctrl.pfPercent/100:0;const mESI=s.esiApplicable?(1+da+hra)*ctrl.esiPercent/100:0;mNet+=mP-mPF-mESI;});
+  if(!mNet){alert('Cannot auto-fit.');return;}
+  const flat=gap/mNet;
+  ts.forEach(s=>{if(!overrides[s.id])overrides[s.id]={};const cur2=overrides[s.id].basicPay!=null?overrides[s.id].basicPay:s.basicPay;overrides[s.id].basicPay=Math.max(0,Math.round(cur2+flat));});
+  renderTable();
+  alert(`Done! Basic of last ${N} staff ${Math.round(flat)>=0?'increased':'decreased'} by Rs.${Math.abs(Math.round(flat)).toLocaleString('en-IN')} each.`);
+}
+
+function clearBasicOverrides(){
+  if(!confirm('Reset all basic pay overrides?'))return;
+  staffList.forEach(s=>{if(overrides[s.id])delete overrides[s.id].basicPay;});
+  renderTable();
+}
+
+function autoSetWorkingDays(){
+  const m=parseInt(document.getElementById('selMonth').value);
+  const y=parseInt(document.getElementById('selYear').value);
+  document.getElementById('workingDays').value=new Date(y,m,0).getDate();
+  renderTable();
+}
+
+['daPercent','hraPercent','pfPercent','esiPercent','workingDays','budgetTarget','adjustN'].forEach(id=>document.getElementById(id).addEventListener('input',renderTable));
+['selMonth','selYear'].forEach(id=>document.getElementById(id).addEventListener('change',autoSetWorkingDays));
+
+const now=new Date();
+document.getElementById('selMonth').value=now.getMonth()+1;
+document.getElementById('selYear').value=now.getFullYear();
+
+fetch('/sal/api/staff').then(r=>r.json()).then(data=>{
+  staffList=data;
+  if(!staffList.length){document.getElementById('pbrBody').innerHTML='<tr><td colspan="19" class="no-staff">No active staff found. Please add staff with basic pay from <a href="/teachers">Staff Management</a>.</td></tr>';return;}
+  const m=parseInt(document.getElementById('selMonth').value);
+  const y=parseInt(document.getElementById('selYear').value);
+  document.getElementById('workingDays').value=new Date(y,m,0).getDate();
+  renderTable();
+}).catch(e=>{document.getElementById('pbrBody').innerHTML=`<tr><td colspan="19" class="no-staff" style="color:#dc2626;">Error: ${e.message}</td></tr>`;});
+</script>
+
 <%- include('../partials/footer') %>
