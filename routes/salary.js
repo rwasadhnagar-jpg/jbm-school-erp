@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const ExcelJS = require('exceljs');
-const PDFDocument = require('pdfkit');
+let ExcelJS;
+try { ExcelJS = require('exceljs'); } catch(e) { console.error('exceljs not available:', e.message); }
+// pdfkit loaded lazily inside the route to avoid startup crash
+let PDFDocument;
+try { PDFDocument = require('pdfkit'); } catch(e) { console.error('pdfkit not available:', e.message); }
 
 // ── Auto-create tables & columns on startup ───────────────────────────────────
 (async () => {

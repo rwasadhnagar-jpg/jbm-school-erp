@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const multer = require('multer');
+const xlsxLib = require('xlsx');
+const structureUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 // ── FEE DASHBOARD ─────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
@@ -174,6 +177,151 @@ router.post('/structure/copy', async (req, res) => {
     res.redirect(`/feemanagement/structure?class_id=${from_class_id}`);
   } catch (err) {
     req.flash('error', 'Copy failed: ' + err.message);
+    res.redirect('/feemanagement/structure');
+  }
+});
+
+// ── FEE STRUCTURE TEMPLATE DOWNLOAD ──────────────────────────────────────────
+router.get('/structure/template', async (req, res) => {
+  try {
+    const [classes] = await db.query('SELECT * FROM classes WHERE academic_year_id=1 ORDER BY class_name+0, class_name, section');
+    const [heads] = await db.query('SELECT * FROM fee_heads WHERE is_active=1 ORDER BY fee_type DESC, name');
+    if (!heads.length) {
+      req.flash('error', 'No fee heads found. Please create fee heads first.');
+      return res.redirect('/feemanagement/masters/heads');
+    }
+
+    // Load existing structure amounts for prefilling
+    const [existing] = await db.query(
+      `SELECT fs.class_id, fs.fee_head_id, fs.amount FROM fee_structure fs WHERE fs.academic_year_id=1`
+    );
+    const existMap = {};
+    existing.forEach(r => { existMap[`${r.class_id}_${r.fee_head_id}`] = r.amount; });
+
+    const wb = xlsxLib.utils.book_new();
+
+    // Build header row
+    const headerRow = ['Class'];
+    heads.forEach(h => headerRow.push(`${h.name} (${h.fee_type})`));
+
+    // Build data rows
+    const dataRows = classes.map(cls => {
+      const row = [`Class ${cls.class_name} - ${cls.section}`];
+      heads.forEach(h => {
+        const amt = existMap[`${cls.id}_${h.id}`];
+        row.push(amt !== undefined ? Number(amt) : '');
+      });
+      return row;
+    });
+
+    const wsData = [headerRow, ...dataRows];
+    const ws = xlsxLib.utils.aoa_to_sheet(wsData);
+
+    // Column widths
+    ws['!cols'] = [{ wch: 22 }, ...heads.map(() => ({ wch: 20 }))];
+
+    // Style header row cells (bold purple background via xlsx doesn't support full styling without xlsx-style,
+    // so we add an instruction row instead)
+    xlsxLib.utils.sheet_add_aoa(ws, [
+      ['INSTRUCTIONS: Fill in the fee AMOUNT (₹) for each class and fee head. Monthly = per month amount. Annual = full year amount. Do NOT change column headers.']
+    ], { origin: { r: classes.length + 2, c: 0 } });
+
+    // Merge instruction cell
+    ws['!merges'] = [{ s: { r: classes.length + 2, c: 0 }, e: { r: classes.length + 2, c: heads.length } }];
+
+    xlsxLib.utils.book_append_sheet(wb, ws, 'Fee Structure');
+
+    // Info sheet
+    const infoData = [
+      ['Fee Head', 'Type', 'Late Fee'],
+      ...heads.map(h => [h.name, h.fee_type, h.apply_late_fee ? 'Yes (₹10/day)' : 'No'])
+    ];
+    const wsInfo = xlsxLib.utils.aoa_to_sheet(infoData);
+    wsInfo['!cols'] = [{ wch: 25 }, { wch: 12 }, { wch: 16 }];
+    xlsxLib.utils.book_append_sheet(wb, wsInfo, 'Fee Heads Reference');
+
+    const buf = xlsxLib.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="fee_structure_template.xlsx"');
+    res.send(buf);
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Template generation failed: ' + err.message);
+    res.redirect('/feemanagement/structure');
+  }
+});
+
+// ── FEE STRUCTURE BULK UPLOAD ─────────────────────────────────────────────────
+router.post('/structure/bulk-upload', structureUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) { req.flash('error', 'No file uploaded'); return res.redirect('/feemanagement/structure'); }
+
+    const wb = xlsxLib.read(req.file.buffer, { type: 'buffer' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = xlsxLib.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (rows.length < 2) { req.flash('error', 'File is empty or missing data rows'); return res.redirect('/feemanagement/structure'); }
+
+    const headerRow = rows[0].map(h => String(h).trim());
+    const [classes] = await db.query('SELECT * FROM classes WHERE academic_year_id=1');
+    const [heads] = await db.query('SELECT * FROM fee_heads WHERE is_active=1');
+
+    // Map header columns to fee head IDs
+    // Header format: "Head Name (Monthly)" or "Head Name (Annual)"
+    const colHeadMap = {}; // colIndex -> { headId, feeType }
+    headerRow.forEach((col, idx) => {
+      if (idx === 0) return; // skip Class column
+      const match = col.match(/^(.+?)\s*\((Monthly|Annual)\)$/i);
+      const headName = match ? match[1].trim() : col.replace(/\s*\((Monthly|Annual)\)\s*$/i, '').trim();
+      const feeType = match ? match[2] : null;
+      const head = heads.find(h => h.name.toLowerCase() === headName.toLowerCase());
+      if (head) colHeadMap[idx] = { headId: head.id, feeType: feeType || head.fee_type };
+    });
+
+    if (!Object.keys(colHeadMap).length) {
+      req.flash('error', 'No matching fee heads found in the file. Make sure column names match your fee heads.');
+      return res.redirect('/feemanagement/structure');
+    }
+
+    // Build class map: "Class X - Y" → class id
+    const classMap = {};
+    classes.forEach(c => {
+      classMap[`class ${c.class_name} - ${c.section}`.toLowerCase()] = c.id;
+      classMap[`${c.class_name} - ${c.section}`.toLowerCase()] = c.id;
+      classMap[`${c.class_name}`.toLowerCase()] = c.id;
+    });
+
+    let saved = 0, skipped = 0;
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const classLabel = String(row[0] || '').trim().toLowerCase();
+      if (!classLabel || classLabel.startsWith('instruction')) continue;
+      const classId = classMap[classLabel];
+      if (!classId) { skipped++; continue; }
+
+      for (const [colIdx, { headId, feeType }] of Object.entries(colHeadMap)) {
+        const raw = row[colIdx];
+        const amt = parseFloat(raw);
+        if (isNaN(amt) || String(raw).trim() === '') {
+          // Remove existing entry if blank
+          await db.query('DELETE FROM fee_structure WHERE class_id=? AND fee_head_id=? AND academic_year_id=1', [classId, headId]);
+          continue;
+        }
+        await db.query(
+          `INSERT INTO fee_structure (class_id, fee_head_id, academic_year_id, amount) VALUES (?,?,1,?)
+           ON DUPLICATE KEY UPDATE amount=?`,
+          [classId, headId, amt, amt]
+        );
+        // Keep fee_head type in sync
+        await db.query('UPDATE fee_heads SET fee_type=? WHERE id=?', [feeType, headId]);
+        saved++;
+      }
+    }
+
+    req.flash('success', `✅ Fee structure uploaded: ${saved} amounts saved, ${skipped} rows skipped`);
+    res.redirect('/feemanagement/structure');
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Upload failed: ' + err.message);
     res.redirect('/feemanagement/structure');
   }
 });

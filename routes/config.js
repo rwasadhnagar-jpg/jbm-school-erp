@@ -3,7 +3,11 @@ const router = express.Router();
 const db = require('../db');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
+const xlsxLib = require('xlsx');
 const { runBackup, BACKUP_DIR } = require('../backup');
+
+const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 const RESET_PASSWORD = 'Alley@1508';
 
@@ -108,6 +112,208 @@ router.post('/reset-demo', async (req, res) => {
     req.flash('error', 'Reset failed: ' + err.message);
     res.redirect('/configuration');
   }
+});
+
+// ── DATA IMPORT ────────────────────────────────────────────────────────────────
+router.get('/import', (req, res) => {
+  const academicYears = ['2021-2022','2022-2023','2023-2024','2024-2025','2025-2026','2026-2027'];
+  res.render('config/import', {
+    title: 'Import Data', activePage: 'config',
+    academicYears,
+    success: req.flash('success'), error: req.flash('error')
+  });
+});
+
+// Import Students
+router.post('/import/students', importUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) { req.flash('error', 'No file uploaded'); return res.redirect('/configuration/import'); }
+    const wb = xlsxLib.read(req.file.buffer, { type: 'buffer', cellDates: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = xlsxLib.utils.sheet_to_json(ws, { defval: '' });
+    if (!rows.length) { req.flash('error', 'File is empty'); return res.redirect('/configuration/import'); }
+
+    const [classes] = await db.query('SELECT id, class_name, section FROM classes');
+    const classMap = {};
+    classes.forEach(c => {
+      classMap[`${c.class_name}`.trim().toLowerCase()] = c.id;
+      classMap[`${c.class_name}-${c.section}`.trim().toLowerCase()] = c.id;
+      classMap[`${c.class_name} ${c.section}`.trim().toLowerCase()] = c.id;
+    });
+
+    let inserted = 0, skipped = 0, errors = [];
+    for (const row of rows) {
+      try {
+        const admission_no = String(row['Admission No'] || row['AdmissionNo'] || row['admission_no'] || '').trim();
+        const first_name   = String(row['First Name'] || row['FirstName'] || row['first_name'] || row['Name'] || '').trim();
+        const last_name    = String(row['Last Name'] || row['LastName'] || row['last_name'] || '').trim();
+        const gender       = String(row['Gender'] || row['gender'] || '').trim();
+        const dob_raw      = row['DOB'] || row['Date of Birth'] || row['dob'] || '';
+        const phone        = String(row['Phone'] || row['Mobile'] || row['phone'] || '').trim();
+        const classRaw     = String(row['Class'] || row['class'] || row['Class Name'] || '').trim().toLowerCase();
+        const father_name  = String(row['Father Name'] || row['FatherName'] || row['father_name'] || '').trim();
+        const mother_name  = String(row['Mother Name'] || row['MotherName'] || row['mother_name'] || '').trim();
+        const address      = String(row['Address'] || row['address'] || '').trim();
+
+        if (!admission_no || !first_name) { skipped++; continue; }
+
+        // Parse DOB — supports Date object, YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY
+        let dob = null;
+        if (dob_raw) {
+          if (dob_raw instanceof Date) {
+            const d = dob_raw;
+            dob = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+          } else {
+            const s = String(dob_raw).trim();
+            if (/^\d{4}-\d{2}-\d{2}/.test(s)) dob = s.substring(0, 10);
+            else if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(s)) {
+              const [d2,m2,y2] = s.split(/[\/\-]/);
+              dob = `${y2}-${m2}-${d2}`;
+            }
+          }
+        }
+
+        const class_id = classMap[classRaw] || null;
+        const status = String(row['Status'] || 'active').toLowerCase() === 'active' ? 'active' : 'inactive';
+
+        // Upsert student (insert or update if admission_no exists)
+        const [existing] = await db.query('SELECT id FROM students WHERE admission_no=?', [admission_no]);
+        if (existing.length) {
+          await db.query(`UPDATE students SET first_name=?,last_name=?,gender=?,dob=?,phone=?,class_id=?,status=? WHERE admission_no=?`,
+            [first_name, last_name||'', gender, dob, phone, class_id, status, admission_no]);
+        } else {
+          await db.query(`INSERT INTO students (admission_no,first_name,last_name,gender,dob,phone,class_id,status) VALUES (?,?,?,?,?,?,?,?)`,
+            [admission_no, first_name, last_name||'', gender, dob, phone, class_id, status]);
+        }
+        // Insert father/mother
+        const [[{id: sid}]] = await db.query('SELECT id FROM students WHERE admission_no=?', [admission_no]);
+        if (father_name) {
+          await db.query(`INSERT INTO parents (student_id,type,name,phone) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE name=?,phone=?`,
+            [sid,'father',father_name,phone,father_name,phone]);
+        }
+        if (mother_name) {
+          await db.query(`INSERT INTO parents (student_id,type,name) VALUES (?,?,?) ON DUPLICATE KEY UPDATE name=?`,
+            [sid,'mother',mother_name,mother_name]);
+        }
+        if (address) {
+          await db.query(`INSERT INTO student_addresses (student_id,present_address) VALUES (?,?) ON DUPLICATE KEY UPDATE present_address=?`,
+            [sid, address, address]);
+        }
+        inserted++;
+      } catch(e) {
+        errors.push(`Row error: ${e.message}`);
+        skipped++;
+      }
+    }
+    req.flash('success', `✅ Students import done: ${inserted} added/updated, ${skipped} skipped${errors.length ? ` (${errors.length} errors)` : ''}`);
+  } catch(e) {
+    req.flash('error', 'Import failed: ' + e.message);
+  }
+  res.redirect('/configuration/import');
+});
+
+// Import Fee Payments (historical)
+router.post('/import/fees', importUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) { req.flash('error', 'No file uploaded'); return res.redirect('/configuration/import'); }
+    const wb = xlsxLib.read(req.file.buffer, { type: 'buffer', cellDates: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = xlsxLib.utils.sheet_to_json(ws, { defval: '' });
+    if (!rows.length) { req.flash('error', 'File is empty'); return res.redirect('/configuration/import'); }
+
+    const [[adminUser]] = await db.query('SELECT id FROM users WHERE role="admin" LIMIT 1');
+    const adminId = adminUser ? adminUser.id : 1;
+
+    let inserted = 0, skipped = 0;
+    for (const row of rows) {
+      try {
+        const admission_no  = String(row['Admission No'] || row['AdmissionNo'] || row['admission_no'] || '').trim();
+        const receipt_no    = String(row['Receipt No'] || row['ReceiptNo'] || row['receipt_no'] || '').trim();
+        const amount        = parseFloat(row['Amount'] || row['amount'] || 0);
+        const payment_mode  = String(row['Mode'] || row['Payment Mode'] || row['payment_mode'] || 'Cash').trim();
+        const remarks       = String(row['Remarks'] || row['remarks'] || '').trim();
+        let payment_date    = null;
+        const d_raw         = row['Date'] || row['Payment Date'] || row['date'] || '';
+        if (d_raw instanceof Date) {
+          payment_date = `${d_raw.getFullYear()}-${String(d_raw.getMonth()+1).padStart(2,'0')}-${String(d_raw.getDate()).padStart(2,'0')}`;
+        } else if (d_raw) {
+          const s = String(d_raw).trim();
+          if (/^\d{4}-\d{2}-\d{2}/.test(s)) payment_date = s.substring(0,10);
+          else if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(s)) {
+            const [d2,m2,y2] = s.split(/[\/\-]/);
+            payment_date = `${y2}-${m2}-${d2}`;
+          }
+        }
+
+        if (!admission_no || !amount) { skipped++; continue; }
+
+        const [[student]] = await db.query('SELECT id FROM students WHERE admission_no=?', [admission_no]);
+        if (!student) { skipped++; continue; }
+
+        const rec_no = receipt_no || `IMP-${admission_no}-${Date.now()}`;
+        const [exist] = await db.query('SELECT id FROM fee_payments WHERE receipt_no=?', [rec_no]);
+        if (exist.length) { skipped++; continue; }
+
+        await db.query(
+          `INSERT INTO fee_payments (student_id,receipt_no,amount_paid,payment_date,payment_mode,remarks,collected_by) VALUES (?,?,?,?,?,?,?)`,
+          [student.id, rec_no, amount, payment_date || new Date().toISOString().split('T')[0], payment_mode, remarks, adminId]
+        );
+        inserted++;
+      } catch(e) { skipped++; }
+    }
+    req.flash('success', `✅ Fee payments import done: ${inserted} added, ${skipped} skipped/duplicate`);
+  } catch(e) {
+    req.flash('error', 'Import failed: ' + e.message);
+  }
+  res.redirect('/configuration/import');
+});
+
+// Import Attendance
+router.post('/import/attendance', importUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) { req.flash('error', 'No file uploaded'); return res.redirect('/configuration/import'); }
+    const academic_year = req.body.academic_year || '';
+    const wb = xlsxLib.read(req.file.buffer, { type: 'buffer', cellDates: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = xlsxLib.utils.sheet_to_json(ws, { defval: '' });
+    if (!rows.length) { req.flash('error', 'File is empty'); return res.redirect('/configuration/import'); }
+
+    let inserted = 0, skipped = 0;
+    for (const row of rows) {
+      try {
+        const admission_no = String(row['Admission No'] || row['AdmissionNo'] || row['admission_no'] || '').trim();
+        const status_val   = String(row['Status'] || row['status'] || 'Present').trim();
+        const remarks      = String(row['Remarks'] || row['remarks'] || '').trim();
+        let att_date = null;
+        const d_raw = row['Date'] || row['date'] || '';
+        if (d_raw instanceof Date) {
+          att_date = `${d_raw.getFullYear()}-${String(d_raw.getMonth()+1).padStart(2,'0')}-${String(d_raw.getDate()).padStart(2,'0')}`;
+        } else if (d_raw) {
+          const s = String(d_raw).trim();
+          if (/^\d{4}-\d{2}-\d{2}/.test(s)) att_date = s.substring(0,10);
+          else if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(s)) {
+            const [d2,m2,y2] = s.split(/[\/\-]/);
+            att_date = `${y2}-${m2}-${d2}`;
+          }
+        }
+
+        if (!admission_no || !att_date) { skipped++; continue; }
+        const [[student]] = await db.query('SELECT id FROM students WHERE admission_no=?', [admission_no]);
+        if (!student) { skipped++; continue; }
+
+        await db.query(
+          `INSERT INTO attendance_student (student_id, date, status, remarks) VALUES (?,?,?,?)
+           ON DUPLICATE KEY UPDATE status=VALUES(status), remarks=VALUES(remarks)`,
+          [student.id, att_date, status_val, remarks]
+        );
+        inserted++;
+      } catch(e) { skipped++; }
+    }
+    req.flash('success', `✅ Attendance import done: ${inserted} records added/updated, ${skipped} skipped`);
+  } catch(e) {
+    req.flash('error', 'Import failed: ' + e.message);
+  }
+  res.redirect('/configuration/import');
 });
 
 module.exports = router;

@@ -1,6 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const crypto = require('crypto');
+const Razorpay = require('razorpay');
+
+let razorpay;
+try {
+  razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+    key_secret: process.env.RAZORPAY_KEY_SECRET || 'rzp_secret_placeholder'
+  });
+} catch(e) { console.error('Razorpay init error:', e.message); }
 
 // === DB INIT ===
 db.query(`CREATE TABLE IF NOT EXISTS fee_structure (
@@ -76,11 +86,16 @@ router.post('/login', async (req, res) => {
       req.flash('error', 'Admission number not found or student is inactive');
       return res.redirect('/portal/login');
     }
-    const dbDob = student.dob ? new Date(student.dob).toISOString().split('T')[0] : null;
+    // dateStrings:true means dob comes as 'YYYY-MM-DD' string from mysql2
+    const dbDob = student.dob ? String(student.dob).substring(0, 10) : null;
+    if (!dbDob) {
+      req.flash('error', 'Date of Birth not recorded. Please contact school office to update your records.');
+      return res.redirect('/portal/login');
+    }
     const parts = dob.trim().split('/');
     const inputDob = parts.length === 3 ? `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}` : null;
-    if (!dbDob || !inputDob || dbDob !== inputDob) {
-      req.flash('error', 'Date of Birth does not match our records');
+    if (!inputDob || dbDob !== inputDob) {
+      req.flash('error', 'Date of Birth does not match. Enter in DD/MM/YYYY format (e.g. 15/08/2010)');
       return res.redirect('/portal/login');
     }
     req.session.student = {
@@ -187,7 +202,77 @@ router.get('/pay', requireStudent, async (req, res) => {
   }
 });
 
-// SUBMIT ONLINE PAYMENT
+// CREATE RAZORPAY ORDER
+router.post('/pay/create-order', requireStudent, async (req, res) => {
+  try {
+    const { total_amount, fee_amount, late_fee, fee_details } = req.body;
+    const amount = Math.round(parseFloat(total_amount) * 100); // paise
+    if (!amount || amount <= 0) return res.json({ error: 'Invalid amount' });
+
+    const order = await razorpay.orders.create({
+      amount,
+      currency: 'INR',
+      receipt: 'RZP' + Date.now(),
+      notes: {
+        student_id: String(req.session.student.id),
+        admission_no: req.session.student.admission_no,
+        fee_amount, late_fee, fee_details
+      }
+    });
+
+    res.json({
+      order_id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key: process.env.RAZORPAY_KEY_ID
+    });
+  } catch (err) {
+    console.error('Razorpay order error:', err);
+    res.json({ error: err.message || 'Could not create payment order' });
+  }
+});
+
+// RAZORPAY PAYMENT SUCCESS — verify signature + create receipt
+router.post('/pay/razorpay-success', requireStudent, async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, fee_amount, late_fee, total_amount, fee_details } = req.body;
+
+    // Verify HMAC signature
+    const body = razorpay_order_id + '|' + razorpay_payment_id;
+    const expected = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET).update(body).digest('hex');
+    if (expected !== razorpay_signature) {
+      return res.json({ success: false, error: 'Payment verification failed. Please contact school office.' });
+    }
+
+    const studentId = req.session.student.id;
+    const receiptNo = 'RZP' + Date.now();
+    const today = new Date().toISOString().split('T')[0];
+
+    // Insert into online_payments as Verified (no pending — auto verified)
+    const [ins] = await db.query(
+      `INSERT INTO online_payments (student_id, receipt_no, fee_amount, late_fee, total_amount, fee_details, utr_no, payment_date, status)
+       VALUES (?,?,?,?,?,?,?,?,'Verified')`,
+      [studentId, receiptNo,
+       parseFloat(fee_amount || 0), parseFloat(late_fee || 0), parseFloat(total_amount),
+       fee_details || '', razorpay_payment_id, today]
+    );
+
+    // Also create a fee_payment record immediately
+    await db.query(
+      `INSERT INTO fee_payments (student_id, receipt_no, amount_paid, payment_date, payment_mode, transaction_id, remarks, collected_by)
+       VALUES (?,?,?,?,'UPI',?,?,1)`,
+      [studentId, receiptNo, parseFloat(total_amount), today, razorpay_payment_id,
+       `Razorpay UPI | Order: ${razorpay_order_id}`]
+    );
+
+    res.json({ success: true, receipt_id: ins.insertId });
+  } catch (err) {
+    console.error('Razorpay verify error:', err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// SUBMIT ONLINE PAYMENT (kept as fallback — not shown in UI)
 router.post('/pay/submit', requireStudent, async (req, res) => {
   try {
     const studentId = req.session.student.id;

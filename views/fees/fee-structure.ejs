@@ -2,9 +2,33 @@
 
 <div class="page-header">
   <div><h1>📋 Fee Structure</h1><p class="page-sub">Set class-wise, head-wise fee amounts for AY 2026-27</p></div>
-  <div>
-    <a href="/feemanagement/masters/heads" class="btn btn-outline-purple">➕ Manage Fee Heads</a>
-    <a href="/feemanagement" class="btn btn-outline-purple">← Fee Dashboard</a>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="/feemanagement/structure/template" class="btn btn-green">⬇️ Download Template</a>
+    <button onclick="document.getElementById('bulkUploadPanel').style.display=document.getElementById('bulkUploadPanel').style.display==='none'?'block':'none'" class="btn btn-outline-purple">⬆️ Bulk Upload</button>
+    <a href="/feemanagement/masters/heads" class="btn btn-outline-purple">💰 Manage Fee Heads</a>
+    <a href="/feemanagement" class="btn btn-outline-purple">← Dashboard</a>
+  </div>
+</div>
+
+<!-- BULK UPLOAD PANEL -->
+<div id="bulkUploadPanel" style="display:none;margin-bottom:16px">
+  <div class="form-card" style="border:2px solid #28a745">
+    <div class="form-card-header" style="background:#28a745">⬆️ Bulk Upload Fee Structure</div>
+    <div class="form-card-body">
+      <p style="font-size:13px;color:#555;margin-bottom:14px">
+        1. Click <strong>Download Template</strong> above to get the Excel file with all classes and fee heads.<br>
+        2. Fill in the amounts (₹) — Monthly = per month, Annual = full year.<br>
+        3. Upload the filled file below. Existing amounts will be updated.
+      </p>
+      <form method="POST" action="/feemanagement/structure/bulk-upload" enctype="multipart/form-data" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div style="flex:1;min-width:250px">
+          <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:5px">Select filled Excel file</label>
+          <input type="file" name="file" accept=".xlsx,.xls" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-green">Upload & Save All Classes</button>
+        <button type="button" class="btn btn-outline-purple" onclick="document.getElementById('bulkUploadPanel').style.display='none'">Cancel</button>
+      </form>
+    </div>
   </div>
 </div>
 

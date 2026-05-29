@@ -1,7 +1,12 @@
 <%- include('../partials/header', { title: 'Fee Heads', activePage: 'fees' }) %>
 <div class="page-header">
   <div><h1>💰 Fee Heads Master</h1><p class="page-sub">Define fee heads with type (Monthly/Annual) and late fee rules</p></div>
-  <a href="/feemanagement/structure" class="btn btn-purple">📋 Set Class-wise Amounts →</a>
+  <div style="display:flex;gap:8px">
+    <% if(heads.length){ %>
+    <a href="/feemanagement/structure/template" class="btn btn-green">⬇️ Download Fee Structure Template</a>
+    <% } %>
+    <a href="/feemanagement/structure" class="btn btn-purple">📋 Set Class-wise Amounts →</a>
+  </div>
 </div>
 
 <% if(success&&success.length){%><div class="alert alert-success">✅ <%=success[0]%></div><%}%>
