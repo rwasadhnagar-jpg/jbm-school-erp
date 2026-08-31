@@ -11,15 +11,8 @@ jobs:
           sudo apt-get install -y sshpass -q
           sshpass -e ssh -o StrictHostKeyChecking=no -p 65002 u502587017@191.101.230.15 "
             cd ~/domains/erp.jbmpschool.in
-            echo '=== nodejs/ dir ===' && find nodejs -maxdepth 4 2>/dev/null
-            echo '=== hbuilds/ dir ===' && find hbuilds -maxdepth 3 2>/dev/null
-            echo '=== find npm anywhere under app ===' && find . -maxdepth 6 -iname 'npm' 2>/dev/null
-            NPMBIN=\$(find . -maxdepth 6 -iname 'npm' -type f 2>/dev/null | head -1)
-            if [ -n \"\$NPMBIN\" ]; then
-              echo \"=== found npm at \$NPMBIN, installing web-push ===\"
-              \$NPMBIN install --production 2>&1 | tail -40
-              echo '=== web-push installed? ===' && ls node_modules/web-push 2>/dev/null && echo OK || echo STILL_MISSING
-            else
-              echo 'NO NPM BINARY FOUND UNDER APP DIR'
-            fi
+            echo '=== successful deploy log (2026-05-29) ===' && cat hbuilds/logs/019e7513-8293-734e-ab04-89442b8bf93b/2026-05-29_18-51-33_deploy.log 2>/dev/null
+            echo '=== failed redeploy log (2026-08-31) ===' && cat hbuilds/logs/01a05918-e0cd-7017-a802-ab789127e091/2026-08-31_18-34-24_deploy.log 2>/dev/null
+            echo '=== nodejs/bin listing ===' && ls -la nodejs/bin 2>/dev/null || echo 'no nodejs/bin'
+            echo '=== nodejs top-level listing ===' && ls -la nodejs 2>/dev/null
           "
