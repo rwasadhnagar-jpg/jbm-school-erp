@@ -38,6 +38,33 @@ try { PDFDocument = require('pdfkit'); } catch(e) { console.error('pdfkit not av
       )
     `);
 
+    // Salary payments table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS salary_payments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        year_no INT NOT NULL,
+        month_no INT NOT NULL,
+        staff_id INT NOT NULL,
+        basic_pay INT DEFAULT 0,
+        da_amt INT DEFAULT 0,
+        hra_amt INT DEFAULT 0,
+        gross INT DEFAULT 0,
+        days_worked INT DEFAULT 0,
+        payable_gross INT DEFAULT 0,
+        pf_amt INT DEFAULT 0,
+        esi_amt INT DEFAULT 0,
+        tds_amt INT DEFAULT 0,
+        loan_amt INT DEFAULT 0,
+        total_deductions INT DEFAULT 0,
+        net_pay INT DEFAULT 0,
+        payment_mode VARCHAR(30) DEFAULT 'Bank Transfer',
+        payment_date DATE,
+        remarks VARCHAR(255) DEFAULT '',
+        paid_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_pay (year_no, month_no, staff_id)
+      )
+    `);
+
     // Default salary settings in configuration table
     const defaults = [
       ['sal_da_percent', '30'],
@@ -421,6 +448,238 @@ router.post('/export/bank-letter', async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).send('PDF failed: ' + e.message);
+  }
+});
+
+// ── Payments: List page ───────────────────────────────────────────────────────
+router.get('/payments', async (req, res) => {
+  try {
+    const [months] = await db.query(
+      `SELECT p.year_no, p.month_no,
+              COUNT(*) AS staff_count,
+              SUM(p.net_pay) AS total_net,
+              MIN(p.payment_date) AS pay_date,
+              p.payment_mode
+       FROM salary_payments p
+       GROUP BY p.year_no, p.month_no, p.payment_mode
+       ORDER BY p.year_no DESC, p.month_no DESC`
+    );
+    res.render('salary/payments', {
+      title: 'Salary Payment History',
+      activePage: 'salary',
+      months
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Error: ' + e.message);
+  }
+});
+
+// ── Payments: Detail for a month ──────────────────────────────────────────────
+router.get('/payments/:year/:month', async (req, res) => {
+  try {
+    const { year, month } = req.params;
+    const [rows] = await db.query(
+      `SELECT p.*, CONCAT(s.first_name,' ',COALESCE(s.last_name,'')) AS name,
+              s.designation, s.account_no
+       FROM salary_payments p
+       JOIN staff s ON s.id = p.staff_id
+       WHERE p.year_no=? AND p.month_no=?
+       ORDER BY FIELD(s.designation,'Vice Principal','PGT','TGT','PRT'), s.first_name`,
+      [year, month]
+    );
+    const mNames = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+    res.render('salary/payment_detail', {
+      title: `Salary Payment — ${mNames[month]} ${year}`,
+      activePage: 'salary',
+      rows,
+      year, month,
+      monthLabel: `${mNames[month]} ${year}`
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Error: ' + e.message);
+  }
+});
+
+// ── API: Record payment (mark as paid) ────────────────────────────────────────
+router.post('/api/pay', async (req, res) => {
+  try {
+    const { year, month, paymentMode, paymentDate, remarks, rows } = req.body;
+    for (const r of rows) {
+      await db.query(
+        `INSERT INTO salary_payments
+          (year_no, month_no, staff_id, basic_pay, da_amt, hra_amt, gross,
+           days_worked, payable_gross, pf_amt, esi_amt, tds_amt, loan_amt,
+           total_deductions, net_pay, payment_mode, payment_date, remarks)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         ON DUPLICATE KEY UPDATE
+           basic_pay=VALUES(basic_pay), da_amt=VALUES(da_amt), hra_amt=VALUES(hra_amt),
+           gross=VALUES(gross), days_worked=VALUES(days_worked),
+           payable_gross=VALUES(payable_gross), pf_amt=VALUES(pf_amt),
+           esi_amt=VALUES(esi_amt), tds_amt=VALUES(tds_amt), loan_amt=VALUES(loan_amt),
+           total_deductions=VALUES(total_deductions), net_pay=VALUES(net_pay),
+           payment_mode=VALUES(payment_mode), payment_date=VALUES(payment_date),
+           remarks=VALUES(remarks), paid_at=CURRENT_TIMESTAMP`,
+        [year, month, r.id, r.basicPay, r.daAmt, r.hraAmt, r.gross,
+         r.daysWorked, r.payableGross, r.pf, r.esi, r.tds, r.loan,
+         r.totalDed, r.netPay, paymentMode, paymentDate || null, remarks || '']
+      );
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── API: Check payment status for a month ────────────────────────────────────
+router.get('/api/payment-status/:year/:month', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT staff_id, payment_mode, payment_date FROM salary_payments WHERE year_no=? AND month_no=?',
+      [req.params.year, req.params.month]
+    );
+    res.json({ paid: rows.length > 0, count: rows.length, rows });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Salary Slip PDF ───────────────────────────────────────────────────────────
+router.get('/slip/:staffId/:year/:month', async (req, res) => {
+  try {
+    const { staffId, year, month } = req.params;
+    const [staffRows] = await db.query(
+      `SELECT CONCAT(first_name,' ',COALESCE(last_name,'')) AS name, designation,
+              pay_scale, account_no, pf_applicable, esi_applicable
+       FROM staff WHERE id=?`, [staffId]
+    );
+    if (!staffRows.length) return res.status(404).send('Staff not found');
+    const staff = staffRows[0];
+
+    const [payRows] = await db.query(
+      'SELECT * FROM salary_payments WHERE staff_id=? AND year_no=? AND month_no=?',
+      [staffId, year, month]
+    );
+    if (!payRows.length) return res.status(404).send('No payment record. Please mark salary as paid first.');
+    const p = payRows[0];
+
+    const settings = await getSalarySettings();
+    const school = await getSchoolInfo();
+    const mNames = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+    const monthLabel = `${mNames[month]} ${year}`;
+
+    const doc = new PDFDocument({ margin: 40, size: 'A5', autoFirstPage: true });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Slip_${staff.name.replace(/ /g,'_')}_${mNames[month]}_${year}.pdf"`);
+    doc.pipe(res);
+
+    const W = 419.53; // A5 width pts
+    const MARGIN = 40;
+    const CW = W - MARGIN * 2;
+
+    // Header
+    doc.rect(MARGIN, MARGIN, CW, 2).fill('#4A0E8F');
+    doc.moveDown(0.3);
+    doc.fontSize(13).font('Helvetica-Bold').fillColor('#4A0E8F').text(school.schoolName.toUpperCase(), { align: 'center' });
+    doc.fontSize(8).font('Helvetica').fillColor('#333').text(school.schoolAddress, { align: 'center' });
+    doc.moveDown(0.3);
+    doc.rect(MARGIN, doc.y, CW, 1).fill('#ccc');
+    doc.fillColor('#000').moveDown(0.5);
+
+    doc.fontSize(10).font('Helvetica-Bold').text(`SALARY SLIP — ${monthLabel}`, { align: 'center' });
+    doc.moveDown(0.5);
+
+    // Employee info box
+    doc.fontSize(8).font('Helvetica');
+    const infoY = doc.y;
+    doc.text(`Name: ${staff.name.trim()}`, MARGIN, infoY);
+    doc.text(`Designation: ${staff.designation || '—'}`, MARGIN, doc.y + 2);
+    doc.text(`Pay Scale: ${staff.pay_scale || '—'}`, MARGIN, doc.y + 2);
+    doc.text(`Account No: ${staff.account_no || '—'}`, MARGIN, doc.y + 2);
+    doc.text(`Payment Mode: ${p.payment_mode}`, MARGIN, doc.y + 2);
+    const payDateStr = p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+    doc.text(`Payment Date: ${payDateStr}`, MARGIN, doc.y + 2);
+    doc.moveDown(0.8);
+
+    // Earnings & Deductions table
+    const col1 = MARGIN, col2 = MARGIN + CW * 0.45, col3 = MARGIN + CW * 0.7, col4 = MARGIN + CW * 0.85;
+    const rowH = 14;
+    let y = doc.y;
+
+    // Table header
+    doc.rect(MARGIN, y, CW, rowH).fill('#4A0E8F');
+    doc.font('Helvetica-Bold').fontSize(7).fillColor('#fff');
+    doc.text('Earnings', col1 + 2, y + 4, { width: col2 - col1 - 4 });
+    doc.text('Amount (₹)', col2 + 2, y + 4, { width: col3 - col2 - 4, align: 'right' });
+    doc.text('Deductions', col3 + 2, y + 4, { width: col4 - col3 - 4 });
+    doc.text('Amount (₹)', col4 + 2, y + 4, { width: MARGIN + CW - col4 - 4, align: 'right' });
+    doc.fillColor('#000');
+    y += rowH;
+
+    const earnings = [
+      ['Basic Pay', p.basic_pay],
+      [`DA (${settings.daPercent}%)`, p.da_amt],
+      [`HRA (${settings.hraPercent}%)`, p.hra_amt],
+    ];
+    const deds = [
+      [`PF (${settings.pfPercent}%)`, p.pf_amt],
+      [`ESI (${settings.esi_amt > 0 ? settings.esiPercent : 0}%)`, p.esi_amt],
+      ['TDS', p.tds_amt],
+      ['Loan/Adv', p.loan_amt],
+    ].filter(d => d[1] > 0);
+
+    const maxRows = Math.max(earnings.length, deds.length);
+    for (let i = 0; i < maxRows; i++) {
+      if (i % 2 === 1) doc.rect(MARGIN, y, CW, rowH).fill('#f9f0ff');
+      doc.font('Helvetica').fontSize(7).fillColor('#000');
+      if (earnings[i]) {
+        doc.text(earnings[i][0], col1 + 2, y + 4, { width: col2 - col1 - 4 });
+        doc.text(earnings[i][1].toLocaleString('en-IN'), col2 + 2, y + 4, { width: col3 - col2 - 4, align: 'right' });
+      }
+      if (deds[i]) {
+        doc.text(deds[i][0], col3 + 2, y + 4, { width: col4 - col3 - 4 });
+        doc.text(deds[i][1].toLocaleString('en-IN'), col4 + 2, y + 4, { width: MARGIN + CW - col4 - 4, align: 'right' });
+      }
+      doc.rect(MARGIN, y, CW, rowH).stroke('#e5e7eb');
+      y += rowH;
+    }
+
+    // Days row
+    doc.rect(MARGIN, y, CW, rowH).fill('#f3f4f6');
+    doc.font('Helvetica').fontSize(7).fillColor('#555');
+    doc.text(`Days Worked: ${p.days_worked} / Payable Gross: ₹${p.payable_gross.toLocaleString('en-IN')}`, MARGIN + 2, y + 4, { width: CW - 4 });
+    y += rowH;
+
+    // Totals row
+    doc.rect(MARGIN, y, CW, rowH).fill('#4A0E8F');
+    doc.font('Helvetica-Bold').fontSize(8).fillColor('#fff');
+    doc.text('Gross Pay', col1 + 2, y + 3, { width: col2 - col1 - 4 });
+    doc.text(p.gross.toLocaleString('en-IN'), col2 + 2, y + 3, { width: col3 - col2 - 4, align: 'right' });
+    doc.text('Total Deductions', col3 + 2, y + 3, { width: col4 - col3 - 4 });
+    doc.text(p.total_deductions.toLocaleString('en-IN'), col4 + 2, y + 3, { width: MARGIN + CW - col4 - 4, align: 'right' });
+    y += rowH + 4;
+
+    // Net Pay highlight
+    doc.rect(MARGIN, y, CW, 20).fill('#16a34a');
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#fff');
+    doc.text(`NET PAY: ₹${p.net_pay.toLocaleString('en-IN')}`, MARGIN + 2, y + 5, { width: CW - 4, align: 'center' });
+    y += 24;
+
+    // Signature
+    doc.font('Helvetica').fontSize(7).fillColor('#555').moveDown(1);
+    y = doc.y;
+    doc.text('_____________________', MARGIN + CW - 110, y);
+    doc.text(settings.principalName, MARGIN + CW - 110, doc.y + 2);
+    doc.text('(Principal)', MARGIN + CW - 110, doc.y + 2);
+
+    doc.fontSize(7).fillColor('#999').text('This is a computer-generated salary slip.', { align: 'center' });
+
+    doc.end();
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Slip generation failed: ' + e.message);
   }
 });
 

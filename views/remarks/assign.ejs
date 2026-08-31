@@ -1,0 +1,27 @@
+<%- include('../partials/header', { title: 'Assign Teachers', activePage: 'remarks' }) %>
+<div class="page-header"><div><h1>👥 Assign Teachers</h1><div class="breadcrumb"><a href="/remarks" style="color:rgba(255,255,255,0.8)">Progress / Remarks</a> → Assign Teachers</div></div></div>
+<div class="toolbar"><a href="/remarks/assign/add" class="btn btn-purple">+ Assign Teacher</a></div>
+<div class="table-container">
+  <div class="table-header"><h3>Teacher-Subject-Class Assignments</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Teacher</th><th>Subject</th><th>Class</th><th></th></tr></thead>
+    <tbody>
+      <% if (assignments.length) { assignments.forEach(function(a,i) { %>
+      <tr>
+        <td><%= i+1 %></td>
+        <td><%= a.first_name %> <%= a.last_name %></td>
+        <td><span class="badge badge-blue"><%= a.subject_name %></span></td>
+        <td><%= a.class_name %> - <%= a.section %></td>
+        <td>
+          <form method="POST" action="/remarks/assign/<%= a.id %>/delete" onsubmit="return confirm('Remove this assignment?')">
+            <button type="submit" class="btn btn-outline-red btn-xs">Remove</button>
+          </form>
+        </td>
+      </tr>
+      <% }) } else { %>
+      <tr><td colspan="5" class="no-data">No assignments yet</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

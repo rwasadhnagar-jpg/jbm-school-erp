@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Progress — JBM School</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#f4f0fa;color:#222;min-height:100vh}
+    .navbar{background:#4A0E8F;color:#fff;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(74,14,143,.3)}
+    .navbar-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
+    .navbar-brand img{width:34px;height:34px;object-fit:contain;background:#fff;border-radius:50%;padding:2px}
+    .navbar-right{display:flex;align-items:center;gap:16px;font-size:13px}
+    .navbar-right a{color:rgba(255,255,255,.85);text-decoration:none}
+    .navbar-right a:hover{color:#fff}
+    .container{max-width:900px;margin:0 auto;padding:24px 16px}
+    .welcome-banner{background:linear-gradient(135deg,#4A0E8F,#7B2FBE);color:#fff;border-radius:12px;padding:18px 22px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+    .welcome-banner h2{font-size:19px;font-weight:800}
+    .welcome-banner p{font-size:13px;opacity:.85;margin-top:3px}
+    .term-select{background:#fff;border-radius:8px;padding:4px 6px;display:flex;align-items:center;gap:6px}
+    .term-select select{border:none;padding:6px 8px;font-size:13px;border-radius:6px}
+    .card{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:18px;overflow:hidden}
+    .card-header{background:#4A0E8F;color:#fff;padding:11px 16px;font-weight:700;font-size:14px}
+    .card-body{padding:14px 16px}
+    .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+    .stat-card{background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06);border-left:4px solid #4A0E8F;text-align:center}
+    .stat-card .stat-label{font-size:11px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+    .stat-card .stat-value{font-size:22px;font-weight:800;color:#4A0E8F;margin-top:4px}
+    .stat-card.green{border-left-color:#28a745}.stat-card.green .stat-value{color:#28a745}
+    .stat-card.red{border-left-color:#e53935}.stat-card.red .stat-value{color:#e53935}
+    .subject-card{border:1px solid #eee;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+    .subject-card:last-child{margin-bottom:0}
+    .subject-card .subject-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .subject-card .subject-name{font-weight:700;color:#4A0E8F;font-size:14px}
+    .subject-card .subject-marks{font-weight:800;font-size:14px}
+    .field-row{font-size:12.5px;margin-top:5px;line-height:1.4}
+    .field-row .lbl{font-weight:600;color:#666}
+    .badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+    .badge-up{background:#e8f5e9;color:#2e7d32}
+    .badge-same{background:#fff3e0;color:#e65100}
+    .badge-down{background:#fdecea;color:#c62828}
+    .empty-state{text-align:center;padding:28px;color:#aaa;font-size:14px}
+    .back-link{display:inline-block;margin-bottom:14px;color:#4A0E8F;font-weight:600;text-decoration:none;font-size:13px}
+    .alert{padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px}
+    .alert-error{background:#fdecea;color:#c62828;border:1px solid #f5c6cb}
+    .alert-success{background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9}
+    @media(max-width:600px){.stats-row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-brand">
+    <img src="/img/logo.png" alt="JBM" onerror="this.style.display='none'">
+    <span>JBM Public School — Progress</span>
+  </div>
+  <div class="navbar-right">
+    <a href="/portal/logout">Logout</a>
+  </div>
+</nav>
+
+<div class="container">
+  <a href="/portal/dashboard" class="back-link">← Back to Dashboard</a>
+
+  <% if (typeof error !== 'undefined' && error && error.length) { %><div class="alert alert-error"><%= error[0] %></div><% } %>
+  <% if (typeof success !== 'undefined' && success && success.length) { %><div class="alert alert-success"><%= success[0] %></div><% } %>
+
+  <div class="welcome-banner">
+    <div>
+      <h2><%= student.first_name %> <%= student.last_name %></h2>
+      <p><%= student.class_name %> - <%= student.section %> &nbsp;|&nbsp; Adm No: <%= student.admission_no %></p>
+    </div>
+    <% if (terms.length) { %>
+    <form method="GET" class="term-select">
+      <select name="exam_term_id" onchange="this.form.submit()">
+        <% terms.forEach(function(t) { %>
+          <option value="<%= t.id %>" <%= (term && term.id===t.id) ? 'selected' : '' %>><%= t.name %></option>
+        <% }) %>
+      </select>
+    </form>
+    <% } %>
+  </div>
+
+  <% if (!term) { %>
+    <div class="card"><div class="card-body"><div class="empty-state">No exam terms have been set up yet. Please check back later.</div></div></div>
+  <% } else { %>
+
+  <div class="stats-row">
+    <div class="stat-card <%= attendance.percent==null ? '' : (attendance.percent>=90?'green':(attendance.percent<75?'red':'')) %>">
+      <div class="stat-label">Attendance</div>
+      <div class="stat-value"><%= attendance.percent!=null ? attendance.percent+'%' : '—' %></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Days Present</div>
+      <div class="stat-value"><%= attendance.present + attendance.late %> / <%= attendance.total %></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Subjects Reported</div>
+      <div class="stat-value"><%= subjectMarks.length %></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">📖 Subject-wise Marks & Remarks — <%= term.name %></div>
+    <div class="card-body">
+      <% if (subjectMarks.length) { subjectMarks.forEach(function(sm) { %>
+        <div class="subject-card">
+          <div class="subject-title">
+            <span class="subject-name"><%= sm.subject_name %></span>
+            <span class="subject-marks"><%= sm.marks_obtained!=null ? sm.marks_obtained : '—' %> / <%= sm.max_marks %></span>
+          </div>
+          <% if (sm.template_remark) { %><div class="field-row"><span class="lbl">Remark:</span> <%= sm.template_remark %></div><% } %>
+        </div>
+      <% }) } else { %>
+        <div class="empty-state">No marks or remarks entered for this term yet.</div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">🏫 Overall Remarks — <%= term.name %></div>
+    <div class="card-body">
+      <% if (overall) { %>
+        <% if (overall.participation_engagement) { %><div class="field-row"><span class="lbl">Class Participation & Engagement:</span> <%= overall.participation_engagement %></div><% } %>
+        <% if (overall.attendance_punctuality_note) { %><div class="field-row"><span class="lbl">Attendance & Punctuality:</span> <%= overall.attendance_punctuality_note %></div><% } %>
+        <% if (overall.discipline_conduct) { %><div class="field-row"><span class="lbl">Discipline / Conduct:</span> <%= overall.discipline_conduct %></div><% } %>
+        <% if (overall.peer_interaction) { %><div class="field-row"><span class="lbl">Peer Interaction:</span> <%= overall.peer_interaction %></div><% } %>
+        <% if (overall.co_scholastic_activities) { %><div class="field-row"><span class="lbl">Co-Scholastic Activities:</span> <%= overall.co_scholastic_activities %></div><% } %>
+        <% if (overall.notable_improvement) { %><div class="field-row"><span class="lbl">Notable Improvement / Achievement:</span> <%= overall.notable_improvement %></div><% } %>
+        <% if (overall.goals_for_term) { %><div class="field-row"><span class="lbl">Goals for Remainder of Term:</span> <%= overall.goals_for_term %></div><% } %>
+      <% } else { %>
+        <div class="empty-state">Class teacher hasn't added overall remarks for this term yet.</div>
+      <% } %>
+    </div>
+  </div>
+
+  <% } %>
+</div>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<%- include('../partials/header', { title: 'Link Teacher Logins', activePage: 'remarks' }) %>
+<div class="page-header"><div><h1>🔗 Link Teacher Logins</h1><div class="breadcrumb"><a href="/remarks" style="color:rgba(255,255,255,0.8)">Progress / Remarks</a> → Link Teacher Logins</div></div></div>
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">Each teacher's login account needs to be linked to their staff record, so remarks are correctly attributed and permission checks work. Don't see a teacher's login below? <a href="/teachers/bulk-accounts">Bulk create teacher logins →</a></div>
+</div>
+<div class="table-container">
+  <div class="table-header"><h3>Teacher Login Accounts</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Login Name</th><th>Email</th><th>Linked Staff Record</th><th></th></tr></thead>
+    <tbody>
+      <% if (users.length) { users.forEach(function(u,i) { %>
+      <tr>
+        <td><%= i+1 %></td>
+        <td><%= u.name %></td>
+        <td><%= u.email %></td>
+        <td>
+          <form method="POST" action="/remarks/link-teachers" style="display:inline-flex;gap:6px;align-items:center">
+            <input type="hidden" name="user_id" value="<%= u.id %>">
+            <select name="staff_id" class="form-control form-control-sm" style="width:200px">
+              <option value="">-- Not Linked --</option>
+              <% staffList.forEach(function(s) { %><option value="<%= s.id %>" <%= String(u.staff_id)===String(s.id)?'selected':'' %>><%= s.first_name %> <%= s.last_name %></option><% }) %>
+            </select>
+            <button type="submit" class="btn btn-purple btn-sm">Save</button>
+          </form>
+        </td>
+        <td><% if (u.staff_id) { %><span class="badge badge-green">Linked</span><% } else { %><span class="badge badge-red">Not Linked</span><% } %></td>
+      </tr>
+      <% }) } else { %>
+      <tr><td colspan="5" class="no-data">No teacher login accounts found</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

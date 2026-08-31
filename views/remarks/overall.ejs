@@ -1,0 +1,50 @@
+<%- include('../partials/header', { title: 'Overall Remarks', activePage: 'remarks' }) %>
+<div class="page-header"><div><h1>🏫 Overall Class-Teacher Remarks</h1><div class="breadcrumb"><a href="/remarks" style="color:rgba(255,255,255,0.8)">Progress / Remarks</a> → Overall</div></div></div>
+
+<div class="toolbar">
+  <form method="GET" action="/remarks/overall" class="search-bar" style="flex-wrap:wrap">
+    <select name="class_id" class="form-control form-control-sm" style="width:160px">
+      <option value="">Select Class</option>
+      <% classes.forEach(function(c) { %><option value="<%= c.id %>" <%= String(class_id)===String(c.id)?'selected':'' %>><%= c.class_name %> - <%= c.section %></option><% }) %>
+    </select>
+    <select name="exam_term_id" class="form-control form-control-sm" style="width:150px">
+      <option value="">Select Term</option>
+      <% terms.forEach(function(t) { %><option value="<%= t.id %>" <%= String(exam_term_id)===String(t.id)?'selected':'' %>><%= t.name %></option><% }) %>
+    </select>
+    <button type="submit" class="btn btn-purple btn-sm">Load</button>
+  </form>
+</div>
+
+<% if (class_id && exam_term_id && !allowed) { %>
+  <div class="no-data">⚠️ You can only enter overall remarks for a class you are the class teacher of.</div>
+<% } else if (students.length) { %>
+<form method="POST" action="/remarks/overall">
+  <input type="hidden" name="class_id" value="<%= class_id %>">
+  <input type="hidden" name="exam_term_id" value="<%= exam_term_id %>">
+  <% students.forEach(function(s) {
+    const ex = existing.find(e => e.student_id === s.id) || {};
+  %>
+  <div class="form-card" style="margin-bottom:16px">
+    <div class="form-card-header">👤 <%= s.first_name %> <%= s.last_name %> <span style="opacity:.7;font-weight:400">(Roll <%= s.roll_no || '—' %>)</span></div>
+    <div class="form-card-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Class Participation & Engagement</label><textarea name="remark[s<%= s.id %>][participation_engagement]" class="form-control" rows="2"><%= ex.participation_engagement || '' %></textarea></div>
+        <div class="form-group"><label>Attendance & Punctuality</label><textarea name="remark[s<%= s.id %>][attendance_punctuality_note]" class="form-control" rows="2"><%= ex.attendance_punctuality_note || '' %></textarea></div>
+        <div class="form-group"><label>Discipline / Conduct</label><textarea name="remark[s<%= s.id %>][discipline_conduct]" class="form-control" rows="2"><%= ex.discipline_conduct || '' %></textarea></div>
+        <div class="form-group"><label>Peer Interaction</label><textarea name="remark[s<%= s.id %>][peer_interaction]" class="form-control" rows="2"><%= ex.peer_interaction || '' %></textarea></div>
+        <div class="form-group"><label>Co-Scholastic Activities</label><textarea name="remark[s<%= s.id %>][co_scholastic_activities]" class="form-control" rows="2"><%= ex.co_scholastic_activities || '' %></textarea></div>
+        <div class="form-group"><label>Notable Improvement / Achievement</label><textarea name="remark[s<%= s.id %>][notable_improvement]" class="form-control" rows="2"><%= ex.notable_improvement || '' %></textarea></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Goals for Remainder of Term</label><textarea name="remark[s<%= s.id %>][goals_for_term]" class="form-control" rows="2"><%= ex.goals_for_term || '' %></textarea></div>
+      </div>
+    </div>
+  </div>
+  <% }) %>
+  <div class="form-actions"><button type="submit" class="btn btn-purple">💾 Save Overall Remarks</button><a href="/remarks" class="btn btn-outline-purple">Cancel</a></div>
+</form>
+<% } else if (class_id && exam_term_id) { %>
+  <div class="no-data">No active students found in this class</div>
+<% } else { %>
+  <div class="no-data">Select a class and exam term to begin</div>
+<% } %>
+
+<%- include('../partials/footer') %>

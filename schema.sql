@@ -547,6 +547,95 @@ CREATE TABLE IF NOT EXISTS `working_days` (
   PRIMARY KEY (`id`)
 );
 
+-- 38. Subjects
+CREATE TABLE IF NOT EXISTS `subjects` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `code` varchar(20) DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `subj_name` (`name`)
+);
+
+-- 39. Exam Terms
+CREATE TABLE IF NOT EXISTS `exam_terms` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `academic_year_id` int DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `max_marks_default` decimal(6,2) DEFAULT 100,
+  `is_active` tinyint(1) DEFAULT 1,
+  `sort_order` int DEFAULT 0,
+  `term_type` enum('unit_test','term') DEFAULT 'term',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `term_name_ay` (`name`,`academic_year_id`)
+);
+
+-- 40. Teacher-Subject-Class Assignment
+CREATE TABLE IF NOT EXISTS `teacher_subjects` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `staff_id` int NOT NULL,
+  `subject_id` int NOT NULL,
+  `class_id` int NOT NULL,
+  `academic_year_id` int DEFAULT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `staff_subject_class` (`staff_id`,`subject_id`,`class_id`,`academic_year_id`)
+);
+
+-- 41. Subject Marks & Remarks
+CREATE TABLE IF NOT EXISTS `student_marks` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `student_id` int NOT NULL,
+  `subject_id` int NOT NULL,
+  `class_id` int NOT NULL,
+  `exam_term_id` int NOT NULL,
+  `marks_obtained` decimal(6,2) DEFAULT NULL,
+  `max_marks` decimal(6,2) DEFAULT 100,
+  `performance_vs_previous` varchar(20) DEFAULT NULL,
+  `classwork_homework_note` text DEFAULT NULL,
+  `strengths` text DEFAULT NULL,
+  `areas_needing_attention` text DEFAULT NULL,
+  `study_habits_note` text DEFAULT NULL,
+  `template_remark` text DEFAULT NULL,
+  `entered_by` int DEFAULT NULL,
+  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `student_subject_term` (`student_id`,`subject_id`,`exam_term_id`)
+);
+
+-- 42. Overall Class-Teacher Remarks
+CREATE TABLE IF NOT EXISTS `student_overall_remarks` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `student_id` int NOT NULL,
+  `class_id` int NOT NULL,
+  `exam_term_id` int NOT NULL,
+  `participation_engagement` text DEFAULT NULL,
+  `attendance_punctuality_note` text DEFAULT NULL,
+  `discipline_conduct` text DEFAULT NULL,
+  `peer_interaction` text DEFAULT NULL,
+  `co_scholastic_activities` text DEFAULT NULL,
+  `notable_improvement` text DEFAULT NULL,
+  `goals_for_term` text DEFAULT NULL,
+  `entered_by` int DEFAULT NULL,
+  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `student_term` (`student_id`,`exam_term_id`)
+);
+
+-- 43. Push Notification Subscriptions
+CREATE TABLE IF NOT EXISTS `push_subscriptions` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `endpoint` text NOT NULL,
+  `p256dh` varchar(255) NOT NULL,
+  `auth` varchar(255) NOT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_endpoint` (`user_id`,`endpoint`(255))
+);
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- Default admin user (password: admin123)
@@ -590,3 +679,18 @@ INSERT IGNORE INTO `fee_heads` (`name`) VALUES
 ('Tuition Fee'), ('Annual Charges'), ('Examination Fee'),
 ('Sports Fee'), ('Lab Fee'), ('Library Fee'),
 ('Transport Fee'), ('Computer Fee'), ('Development Fee');
+
+-- Default exam terms (JBM: 4 Unit Tests, marks-only, + Half Yearly/Annual, full remarks). Dates are placeholders — update via /remarks/terms.
+INSERT IGNORE INTO `exam_terms` (`name`, `academic_year_id`, `start_date`, `end_date`, `sort_order`, `term_type`) VALUES
+('Unit Test 1', 1, NULL, NULL, 1, 'unit_test'),
+('Unit Test 2', 1, NULL, NULL, 2, 'unit_test'),
+('Unit Test 3', 1, NULL, NULL, 3, 'unit_test'),
+('Unit Test 4', 1, NULL, NULL, 4, 'unit_test'),
+('Half Yearly', 1, '2026-09-15', '2026-10-15', 5, 'term'),
+('Annual Exam', 1, '2027-02-15', '2027-03-15', 6, 'term');
+
+-- Default subjects
+INSERT IGNORE INTO `subjects` (`name`, `code`) VALUES
+('English','ENG'), ('Hindi','HIN'), ('Mathematics','MAT'), ('Science','SCI'),
+('Social Studies','SST'), ('Computer Science','CS'), ('Physical Education','PE'),
+('Art & Craft','ART'), ('Environmental Studies','EVS');

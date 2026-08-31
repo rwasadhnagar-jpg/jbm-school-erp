@@ -1,0 +1,26 @@
+<%- include('../partials/header', { title: 'Bulk Upload Teachers (Excel)', activePage: 'staff' }) %>
+<div class="page-header"><div><h1>📥 Bulk Upload Teachers via Excel</h1><div class="breadcrumb"><a href="/teachers" style="color:rgba(255,255,255,0.8)">Staff Management</a> → Bulk Upload</div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">
+    Upload an Excel file with just two columns — <strong>Teacher Name</strong> and <strong>Class</strong> (plus optional <strong>Section</strong>). For each row: a login is created for that teacher (if they don't already have one), they become the class teacher for that class, and they're auto-assigned to <strong>every subject</strong> for that class. Existing logins are never overwritten.
+    <br><br>
+    Column headers (first row): <code>Teacher Name</code> | <code>Class</code> | <code>Section</code>
+  </div>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>Upload File</h3></div>
+  <form method="POST" action="/teachers/bulk-upload" enctype="multipart/form-data" style="padding:20px">
+    <div class="form-group">
+      <label>Excel File (.xlsx)</label>
+      <input type="file" name="file" accept=".xlsx,.xls" required class="form-control">
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-purple">📤 Upload &amp; Create Logins</button>
+      <a href="/teachers" class="btn btn-outline-purple">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/footer') %>

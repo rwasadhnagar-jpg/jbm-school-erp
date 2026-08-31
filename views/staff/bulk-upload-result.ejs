@@ -1,0 +1,36 @@
+<%- include('../partials/header', { title: 'Teachers Onboarded', activePage: 'staff' }) %>
+<div class="page-header"><div><h1>✅ Bulk Upload Result</h1><div class="breadcrumb">Staff Management → Bulk Upload → Result</div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px;border-left:4px solid var(--red,#dc3545)">
+  <div class="widget-body">
+    ⚠️ Passwords are shown <strong>only once</strong> and are not stored in plain text. Print this page or copy the details now before leaving.
+  </div>
+</div>
+
+<div class="toolbar"><button onclick="window.print()" class="btn btn-outline-purple">🖨️ Print</button></div>
+
+<div class="table-container">
+  <div class="table-header"><h3><%= results.length %> Row<%= results.length>1?'s':'' %> Processed</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Teacher</th><th>Class</th><th>Login Email</th><th>Temporary Password</th><th>Status</th></tr></thead>
+    <tbody>
+      <% results.forEach(function(r,i) { %>
+      <tr>
+        <td><%= i+1 %></td>
+        <td><strong><%= r.name %></strong></td>
+        <td><%= r.class %></td>
+        <td><%= r.email || '—' %></td>
+        <td><% if (r.password) { %><code style="font-size:14px;font-weight:700;background:#f7f3ff;padding:3px 8px;border-radius:4px"><%= r.password %></code><% } else { %>—<% } %></td>
+        <td><span class="badge <%= r.status.startsWith('created') ? 'badge-green' : (r.status.startsWith('error') || r.status.startsWith('skipped') ? 'badge-red' : 'badge-blue') %>"><%= r.status %></span></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<div class="form-actions">
+  <a href="/teachers/bulk-upload" class="btn btn-outline-purple">← Upload More</a>
+  <a href="/teachers" class="btn btn-purple">Back to Staff →</a>
+</div>
+
+<%- include('../partials/footer') %>

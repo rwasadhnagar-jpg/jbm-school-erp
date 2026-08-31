@@ -1,0 +1,34 @@
+<%- include('../partials/header', { title: 'Teacher Logins Created', activePage: 'staff' }) %>
+<div class="page-header"><div><h1>✅ Teacher Logins Created</h1><div class="breadcrumb">Staff Management → Bulk Create Logins → Result</div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px;border-left:4px solid var(--red,#dc3545)">
+  <div class="widget-body">
+    ⚠️ These passwords are shown <strong>only once</strong> and are not stored anywhere in plain text. Print this page or copy the details now before leaving — you can always create a fresh account later if one is lost, from the same Bulk Create Logins screen.
+  </div>
+</div>
+
+<div class="toolbar"><button onclick="window.print()" class="btn btn-outline-purple">🖨️ Print</button></div>
+
+<div class="table-container">
+  <div class="table-header"><h3><%= results.length %> Account<%= results.length>1?'s':'' %> Created</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Teacher</th><th>Login Email</th><th>Temporary Password</th></tr></thead>
+    <tbody>
+      <% results.forEach(function(r,i) { %>
+      <tr>
+        <td><%= i+1 %></td>
+        <td><strong><%= r.name %></strong></td>
+        <td><%= r.email %></td>
+        <td><code style="font-size:14px;font-weight:700;background:#f7f3ff;padding:3px 8px;border-radius:4px"><%= r.password %></code></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<div class="form-actions">
+  <a href="/teachers/bulk-accounts" class="btn btn-outline-purple">← Create More</a>
+  <a href="/remarks/assign" class="btn btn-purple">Assign These Teachers to Classes/Subjects →</a>
+</div>
+
+<%- include('../partials/footer') %>

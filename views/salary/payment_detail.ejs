@@ -1,0 +1,97 @@
+<%- include('../partials/header', { title: title, activePage: 'salary' }) %>
+
+<div class="page-header">
+  <div>
+    <h1>💳 <%= monthLabel %> — Payment Details</h1>
+    <div class="breadcrumb">Salary Management &bull; Payment History &bull; <%= monthLabel %></div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="/sal/payments" class="btn btn-outline">← All Payments</a>
+    <a href="/sal" class="btn btn-purple">PBR</a>
+  </div>
+</div>
+
+<% if (!rows.length) { %>
+<div class="card" style="text-align:center;padding:40px;color:#999;">No payment records found for this month.</div>
+<% } else { %>
+
+<div style="background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.08);padding:16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;">
+  <div>
+    <div style="font-size:11px;color:#888;font-weight:600;text-transform:uppercase;">Staff Paid</div>
+    <div style="font-size:22px;font-weight:700;color:#4A0E8F;"><%= rows.length %></div>
+  </div>
+  <div>
+    <div style="font-size:11px;color:#888;font-weight:600;text-transform:uppercase;">Total Net Pay</div>
+    <div style="font-size:22px;font-weight:700;color:#16a34a;">₹<%= rows.reduce((s,r)=>s+r.net_pay,0).toLocaleString('en-IN') %></div>
+  </div>
+  <div>
+    <div style="font-size:11px;color:#888;font-weight:600;text-transform:uppercase;">Payment Mode</div>
+    <div style="font-size:16px;font-weight:600;color:#1e40af;"><%= rows[0].payment_mode %></div>
+  </div>
+  <div>
+    <div style="font-size:11px;color:#888;font-weight:600;text-transform:uppercase;">Payment Date</div>
+    <div style="font-size:16px;font-weight:600;">
+      <% if (rows[0].payment_date) { %>
+        <%= new Date(rows[0].payment_date).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}) %>
+      <% } else { %>—<% } %>
+    </div>
+  </div>
+  <div style="margin-left:auto;">
+    <button onclick="window.print()" class="btn btn-outline btn-sm">🖨 Print</button>
+  </div>
+</div>
+
+<div style="overflow-x:auto;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:900px;">
+    <thead>
+      <tr style="background:#4A0E8F;color:#fff;">
+        <th style="padding:8px 10px;">S.No</th>
+        <th style="padding:8px 10px;text-align:left;">Name</th>
+        <th style="padding:8px 10px;">Designation</th>
+        <th style="padding:8px 10px;">Account No.</th>
+        <th style="padding:8px 10px;">Basic</th>
+        <th style="padding:8px 10px;">Gross</th>
+        <th style="padding:8px 10px;">Deductions</th>
+        <th style="padding:8px 10px;">Net Pay</th>
+        <th style="padding:8px 10px;">Slip</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.forEach((r, i) => { %>
+      <tr style="background:<%= i%2===0?'#fff':'#faf5ff' %>;border-bottom:1px solid #f0f0f0;">
+        <td style="padding:8px 10px;text-align:center;"><%= i+1 %></td>
+        <td style="padding:8px 10px;font-weight:600;"><%= r.name.trim() %></td>
+        <td style="padding:8px 10px;text-align:center;"><%= r.designation||'—' %></td>
+        <td style="padding:8px 10px;text-align:center;font-size:11px;"><%= r.account_no||'—' %></td>
+        <td style="padding:8px 10px;text-align:right;">₹<%= r.basic_pay.toLocaleString('en-IN') %></td>
+        <td style="padding:8px 10px;text-align:right;">₹<%= r.gross.toLocaleString('en-IN') %></td>
+        <td style="padding:8px 10px;text-align:right;color:#dc2626;">₹<%= r.total_deductions.toLocaleString('en-IN') %></td>
+        <td style="padding:8px 10px;text-align:right;font-weight:700;color:#16a34a;">₹<%= r.net_pay.toLocaleString('en-IN') %></td>
+        <td style="padding:8px 10px;text-align:center;">
+          <a href="/sal/slip/<%= r.staff_id %>/<%= year %>/<%= month %>" target="_blank" class="btn btn-sm" style="background:#4A0E8F;color:#fff;font-size:11px;padding:3px 8px;">📄 Slip</a>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+    <tfoot>
+      <tr style="background:#f9f0ff;font-weight:700;border-top:2px solid #4A0E8F;">
+        <td colspan="4" style="padding:10px;">TOTAL</td>
+        <td style="padding:10px;text-align:right;">₹<%= rows.reduce((s,r)=>s+r.basic_pay,0).toLocaleString('en-IN') %></td>
+        <td style="padding:10px;text-align:right;">₹<%= rows.reduce((s,r)=>s+r.gross,0).toLocaleString('en-IN') %></td>
+        <td style="padding:10px;text-align:right;color:#dc2626;">₹<%= rows.reduce((s,r)=>s+r.total_deductions,0).toLocaleString('en-IN') %></td>
+        <td style="padding:10px;text-align:right;color:#16a34a;">₹<%= rows.reduce((s,r)=>s+r.net_pay,0).toLocaleString('en-IN') %></td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+<% } %>
+
+<style>
+@media print {
+  .sidebar,.navbar,.page-header .btn,.btn { display:none !important; }
+  .main-content { margin:0 !important; padding:0 !important; }
+}
+</style>
+
+<%- include('../partials/footer') %>

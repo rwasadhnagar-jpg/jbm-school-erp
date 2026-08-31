@@ -57,58 +57,23 @@ db.query(`INSERT IGNORE INTO configuration (key_name, value, description) VALUES
   ('payment_note','Please pay fees by 10th of each month to avoid late charges.','Payment Instruction Note')
 `).catch(()=>{});
 
-const requireStudent = (req, res, next) => {
-  if (!req.session.student) return res.redirect('/portal/login');
-  next();
+const requirePortalUser = (req, res, next) => {
+  if (req.session.student) return next();
+  if (req.session.user && req.session.user.role === 'parent') return next();
+  return res.redirect('/portal/login');
 };
+const requireStudent = requirePortalUser;
 
-// LOGIN PAGE
+// LOGIN PAGE — student self-login is disabled for now (parent-only access)
 router.get('/login', (req, res) => {
-  if (req.session.student) return res.redirect('/portal/dashboard');
-  res.render('student/login', { title: 'Student Portal — JBM School', error: req.flash('error'), success: req.flash('success') });
+  req.flash('error', 'Student login is not available yet. Please use the Parent Portal.');
+  res.redirect('/parent-login');
 });
 
-// LOGIN POST
-router.post('/login', async (req, res) => {
-  try {
-    const { admission_no, dob } = req.body;
-    if (!admission_no || !dob) {
-      req.flash('error', 'Please enter Admission Number and Date of Birth');
-      return res.redirect('/portal/login');
-    }
-    const [[student]] = await db.query(
-      `SELECT s.*, c.class_name, c.section FROM students s
-       LEFT JOIN classes c ON s.class_id = c.id
-       WHERE s.admission_no = ? AND s.status = 'active'`,
-      [admission_no.trim()]
-    );
-    if (!student) {
-      req.flash('error', 'Admission number not found or student is inactive');
-      return res.redirect('/portal/login');
-    }
-    // dateStrings:true means dob comes as 'YYYY-MM-DD' string from mysql2
-    const dbDob = student.dob ? String(student.dob).substring(0, 10) : null;
-    if (!dbDob) {
-      req.flash('error', 'Date of Birth not recorded. Please contact school office to update your records.');
-      return res.redirect('/portal/login');
-    }
-    const parts = dob.trim().split('/');
-    const inputDob = parts.length === 3 ? `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}` : null;
-    if (!inputDob || dbDob !== inputDob) {
-      req.flash('error', 'Date of Birth does not match. Enter in DD/MM/YYYY format (e.g. 15/08/2010)');
-      return res.redirect('/portal/login');
-    }
-    req.session.student = {
-      id: student.id, admission_no: student.admission_no,
-      name: `${student.first_name} ${student.last_name}`,
-      class_name: student.class_name, section: student.section, dob: student.dob
-    };
-    res.redirect('/portal/dashboard');
-  } catch (err) {
-    console.error(err);
-    req.flash('error', 'Login failed. Please try again.');
-    res.redirect('/portal/login');
-  }
+// LOGIN POST — disabled for now (parent-only access)
+router.post('/login', (req, res) => {
+  req.flash('error', 'Student login is not available yet. Please use the Parent Portal.');
+  res.redirect('/parent-login');
 });
 
 // LOGOUT
@@ -119,7 +84,40 @@ router.get('/logout', (req, res) => {
 });
 
 // DASHBOARD
-router.get('/dashboard', requireStudent, async (req, res) => {
+router.get('/dashboard', requirePortalUser, async (req, res) => {
+  // Parent dashboard — show all children
+  if (req.session.user && req.session.user.role === 'parent') {
+    try {
+      const children = req.session.user.children || [];
+      const childData = [];
+      for (const child of children) {
+        const [[student]] = await db.query(
+          `SELECT s.*, c.class_name, c.section FROM students s LEFT JOIN classes c ON s.class_id=c.id WHERE s.id=?`, [child.id]
+        );
+        const [officePay] = await db.query(
+          `SELECT COALESCE(SUM(amount_paid),0) as total FROM fee_payments WHERE student_id=?`, [child.id]
+        );
+        const [onlinePay] = await db.query(
+          `SELECT COALESCE(SUM(total_amount),0) as total FROM online_payments WHERE student_id=? AND status!='Rejected'`, [child.id]
+        );
+        childData.push({
+          student,
+          totalPaid: parseFloat(officePay[0].total) + parseFloat(onlinePay[0].total)
+        });
+      }
+      const [recentNotices] = await db.query('SELECT * FROM notices ORDER BY created_at DESC LIMIT 5');
+      return res.render('student/parent-dashboard', {
+        title: 'Parent Portal — JBM School',
+        parentName: req.session.user.name,
+        childData, recentNotices,
+        error: req.flash('error'), success: req.flash('success')
+      });
+    } catch(err) {
+      console.error(err);
+      return res.redirect('/parent-login');
+    }
+  }
+
   try {
     const studentId = req.session.student.id;
     const [[student]] = await db.query(
@@ -160,6 +158,84 @@ router.get('/dashboard', requireStudent, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.redirect('/portal/login');
+  }
+});
+
+// STUDENT PROGRESS (marks, remarks, attendance summary) — parent or self-login student
+router.get('/progress/:studentId', requirePortalUser, async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.studentId, 10);
+
+    // Ownership check — a parent may only view their own children, a student only themself
+    if (req.session.user && req.session.user.role === 'parent') {
+      const owns = (req.session.user.children || []).some(c => c.id === studentId);
+      if (!owns) {
+        req.flash('error', 'You can only view progress for your own children');
+        return res.redirect('/portal/dashboard');
+      }
+    } else if (req.session.student && req.session.student.id !== studentId) {
+      req.flash('error', 'You can only view your own progress');
+      return res.redirect('/portal/dashboard');
+    }
+
+    const [[student]] = await db.query(
+      `SELECT s.*, c.class_name, c.section, c.id AS class_id
+       FROM students s LEFT JOIN classes c ON s.class_id=c.id WHERE s.id=?`, [studentId]
+    );
+    if (!student) return res.redirect('/portal/dashboard');
+
+    const [terms] = await db.query('SELECT * FROM exam_terms WHERE is_active=1 ORDER BY sort_order, start_date');
+    let examTermId = req.query.exam_term_id ? parseInt(req.query.exam_term_id, 10) : null;
+    if (!examTermId && terms.length) examTermId = terms[terms.length - 1].id;
+    const term = terms.find(t => t.id === examTermId) || null;
+
+    let subjectMarks = [];
+    let overall = null;
+    let attendance = { total: 0, present: 0, late: 0, percent: null };
+
+    if (term) {
+      [subjectMarks] = await db.query(
+        `SELECT sm.*, sub.name AS subject_name
+         FROM student_marks sm JOIN subjects sub ON sm.subject_id=sub.id
+         WHERE sm.student_id=? AND sm.exam_term_id=? ORDER BY sub.name`,
+        [studentId, examTermId]
+      );
+      const [[overallRow]] = await db.query(
+        'SELECT * FROM student_overall_remarks WHERE student_id=? AND exam_term_id=?',
+        [studentId, examTermId]
+      );
+      overall = overallRow || null;
+
+      let startDate = term.start_date, endDate = term.end_date;
+      if (!startDate || !endDate) {
+        const [[ay]] = await db.query('SELECT * FROM academic_years WHERE id=?', [student.academic_year_id]);
+        startDate = ay ? ay.start_date : null;
+        endDate = ay ? ay.end_date : null;
+      }
+      if (startDate && endDate) {
+        const [[att]] = await db.query(
+          `SELECT COUNT(*) total, SUM(status='Present') present, SUM(status='Late') late
+           FROM attendance_student WHERE student_id=? AND date BETWEEN ? AND ?`,
+          [studentId, startDate, endDate]
+        );
+        const total = Number(att.total) || 0;
+        const present = Number(att.present) || 0;
+        const late = Number(att.late) || 0;
+        attendance = {
+          total, present, late,
+          percent: total > 0 ? Math.round(((present + late) / total) * 1000) / 10 : null
+        };
+      }
+    }
+
+    res.render('student/progress', {
+      title: 'Student Progress — JBM School',
+      student, terms, term, subjectMarks, overall, attendance
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Could not load progress page');
+    res.redirect('/portal/dashboard');
   }
 });
 

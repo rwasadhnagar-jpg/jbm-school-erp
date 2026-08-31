@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> — JBM ERP</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="manifest" href="/manifest.json">
+  <script src="/js/push.js" defer></script>
 </head>
 <body>
 
@@ -15,6 +17,7 @@
     <span class="school-badge">ERP</span>
   </div>
   <div class="navbar-right">
+    <button id="enable-push-btn" type="button" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer">🔔 Enable Notifications</button>
     <span class="user-info">👤 <span><%= user.name %></span> (<%= user.role %>)</span>
     <span style="color:rgba(255,255,255,0.4)">|</span>
     <span style="color:#fff;font-size:12px;opacity:0.8;">AY: <%= academicYear %></span>
@@ -22,18 +25,37 @@
   </div>
 </nav>
 
+<% const role = user.role; %>
+
 <aside class="sidebar">
   <div class="sidebar-section">
     <a href="/dashboard" class="sidebar-item <%= activePage === 'dashboard' ? 'active' : '' %>">
       <span class="icon">📊</span><span class="label">Dashboard</span>
     </a>
   </div>
+
+  <% if (role === 'admin') { %>
   <div class="sidebar-section">
     <div class="sidebar-section-title">Academic</div>
     <a href="/timetablemanagement" class="sidebar-item <%= activePage === 'timetable' ? 'active' : '' %>">
       <span class="icon">📅</span><span class="label">Timetable</span>
     </a>
   </div>
+  <% } %>
+
+  <% if (role === 'teacher') { %>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">My Class</div>
+    <a href="/attday" class="sidebar-item <%= activePage === 'attendance' ? 'active' : '' %>">
+      <span class="icon">✅</span><span class="label">Attendance</span>
+    </a>
+    <a href="/remarks" class="sidebar-item <%= activePage === 'remarks' ? 'active' : '' %>">
+      <span class="icon">📝</span><span class="label">Progress / Remarks</span>
+    </a>
+  </div>
+  <% } %>
+
+  <% if (role === 'admin') { %>
   <div class="sidebar-section">
     <div class="sidebar-section-title">Administration</div>
     <a href="/studentadministration" class="sidebar-item <%= activePage === 'students' ? 'active' : '' %>">
@@ -45,6 +67,9 @@
     <a href="/attday" class="sidebar-item <%= activePage === 'attendance' ? 'active' : '' %>">
       <span class="icon">✅</span><span class="label">Attendance</span>
     </a>
+    <a href="/remarks" class="sidebar-item <%= activePage === 'remarks' ? 'active' : '' %>">
+      <span class="icon">📝</span><span class="label">Progress / Remarks</span>
+    </a>
     <a href="/lms" class="sidebar-item <%= activePage === 'library' ? 'active' : '' %>">
       <span class="icon">📚</span><span class="label">Library</span>
     </a>
@@ -55,12 +80,36 @@
       <span class="icon">🏠</span><span class="label">Hostel</span>
     </a>
   </div>
+  <% } %>
+
+  <% if (role === 'librarian') { %>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Administration</div>
+    <a href="/lms" class="sidebar-item <%= activePage === 'library' ? 'active' : '' %>">
+      <span class="icon">📚</span><span class="label">Library</span>
+    </a>
+  </div>
+  <% } %>
+
+  <% if (role === 'transport') { %>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Administration</div>
+    <a href="/transport" class="sidebar-item <%= activePage === 'transport' ? 'active' : '' %>">
+      <span class="icon">🚌</span><span class="label">Transport</span>
+    </a>
+  </div>
+  <% } %>
+
+  <% if (role === 'admin') { %>
   <div class="sidebar-section">
     <div class="sidebar-section-title">Certificates</div>
     <a href="/certificates" class="sidebar-item <%= activePage === 'certificates' ? 'active' : '' %>">
       <span class="icon">📜</span><span class="label">TC & Certificates</span>
     </a>
   </div>
+  <% } %>
+
+  <% if (role === 'admin') { %>
   <div class="sidebar-section">
     <div class="sidebar-section-title">Communication</div>
     <a href="/sms" class="sidebar-item <%= activePage === 'sms' ? 'active' : '' %>">
@@ -70,11 +119,16 @@
       <span class="icon">📢</span><span class="label">Notices</span>
     </a>
   </div>
+  <% } %>
+
+  <% if (['admin','accountant'].includes(role)) { %>
   <div class="sidebar-section">
     <div class="sidebar-section-title">Financial</div>
+    <% if (role === 'admin') { %>
     <a href="/registration" class="sidebar-item <%= activePage === 'admission' ? 'active' : '' %>">
       <span class="icon">📋</span><span class="label">Admissions</span>
     </a>
+    <% } %>
     <a href="/feemanagement" class="sidebar-item <%= activePage === 'fees' ? 'active' : '' %>">
       <span class="icon">💰</span><span class="label">Fee Management</span>
     </a>
@@ -82,6 +136,9 @@
       <span class="icon">💵</span><span class="label">Salary</span>
     </a>
   </div>
+  <% } %>
+
+  <% if (role === 'admin') { %>
   <div class="sidebar-section">
     <div class="sidebar-section-title">Setup</div>
     <a href="/configuration" class="sidebar-item <%= activePage === 'config' ? 'active' : '' %>">
@@ -94,6 +151,8 @@
       <span class="icon">📥</span><span class="label">Import Data</span>
     </a>
   </div>
+  <% } %>
+
 </aside>
 
 <main class="main-content">

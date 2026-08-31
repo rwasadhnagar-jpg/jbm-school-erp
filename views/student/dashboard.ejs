@@ -60,6 +60,8 @@
     .rejected-badge{background:#f44336;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
     @media(max-width:640px){.stats-row{grid-template-columns:1fr 1fr}.info-grid{grid-template-columns:1fr}.welcome-banner{flex-direction:column}}
   </style>
+  <link rel="manifest" href="/manifest.json">
+  <script src="/js/push.js" defer></script>
 </head>
 <body>
 
@@ -70,6 +72,7 @@
     <span style="background:rgba(255,255,255,.2);padding:2px 10px;border-radius:12px;font-size:11px">Student Portal</span>
   </div>
   <div class="navbar-right">
+    <button id="enable-push-btn" type="button" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer">🔔 Enable Notifications</button>
     <span>👤 <%= student.first_name %> <%= student.last_name %></span>
     <span style="color:rgba(255,255,255,.3)">|</span>
     <a href="/portal/logout">Logout</a>
@@ -86,7 +89,10 @@
       <h2>Welcome, <%= student.first_name %>! 👋</h2>
       <p>Class: <%= student.class_name %> - <%= student.section %> &nbsp;|&nbsp; Adm No: <%= student.admission_no %></p>
     </div>
-    <a href="/portal/pay" class="btn-pay">💳 Pay Fees Online →</a>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="/portal/progress/<%= student.id %>" class="btn btn-outline" style="background:#fff">📊 View Progress</a>
+      <a href="/portal/pay" class="btn-pay">💳 Pay Fees Online →</a>
+    </div>
   </div>
 
   <!-- Stats -->

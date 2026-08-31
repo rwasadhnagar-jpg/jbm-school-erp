@@ -40,7 +40,10 @@ tr.row-on-leave td { border-left:3px solid #f9a825; }
     <h1>💵 Pay Bill Register</h1>
     <div class="breadcrumb">Salary Management &bull; Generate PBR &bull; Export Excel &amp; Bank Letter</div>
   </div>
-  <a href="/sal/settings" class="btn btn-outline">⚙️ Salary Settings</a>
+  <div style="display:flex;gap:8px;">
+    <a href="/sal/payments" class="btn btn-outline">💳 Payment History</a>
+    <a href="/sal/settings" class="btn btn-outline">⚙️ Salary Settings</a>
+  </div>
 </div>
 
 <!-- Controls -->
@@ -83,6 +86,7 @@ tr.row-on-leave td { border-left:3px solid #f9a825; }
     <button class="btn btn-success btn-sm" onclick="exportExcel()">Export Excel</button>
     <button class="btn btn-outline btn-sm" onclick="window.print()">Print PBR</button>
     <button class="btn btn-purple btn-sm" onclick="exportBankLetter()">Bank Letter PDF</button>
+    <button class="btn btn-sm" id="markPaidBtn" style="background:#16a34a;color:#fff;" onclick="openPayModal()">✅ Mark as Paid</button>
   </div>
 </div>
 
@@ -294,6 +298,65 @@ fetch('/sal/api/staff').then(r=>r.json()).then(data=>{
   document.getElementById('workingDays').value=new Date(y,m,0).getDate();
   renderTable();
 }).catch(e=>{document.getElementById('pbrBody').innerHTML=`<tr><td colspan="19" class="no-staff" style="color:#dc2626;">Error: ${e.message}</td></tr>`;});
+</script>
+
+<!-- Mark as Paid Modal -->
+<div id="payModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;padding:28px;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <h2 style="margin:0 0 20px;color:#4A0E8F;font-size:18px;">✅ Mark Salary as Paid</h2>
+    <div id="payMonthLabel" style="font-weight:600;color:#333;margin-bottom:16px;font-size:15px;"></div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="font-size:12px;font-weight:600;color:#666;display:block;margin-bottom:4px;">Payment Mode</label>
+        <select id="payMode" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;">
+          <option>Bank Transfer</option>
+          <option>Cheque</option>
+          <option>Cash</option>
+          <option>NEFT</option>
+          <option>RTGS</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:#666;display:block;margin-bottom:4px;">Payment Date</label>
+        <input type="date" id="payDate" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:#666;display:block;margin-bottom:4px;">Remarks (optional)</label>
+        <input type="text" id="payRemarks" placeholder="e.g. Salary disbursed via bank" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;">
+      </div>
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:10px;font-size:13px;" id="payPreview"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn btn-outline" onclick="closePayModal()" style="flex:1;">Cancel</button>
+      <button class="btn" style="flex:1;background:#16a34a;color:#fff;font-weight:600;" onclick="submitPayment()">Confirm Payment</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openPayModal(){
+  if(!staffList.length){alert('No staff loaded.');return;}
+  const ctrl=getControls();
+  const mLabel=months[ctrl.month-1]+' '+ctrl.year;
+  document.getElementById('payMonthLabel').textContent='Month: '+mLabel;
+  document.getElementById('payDate').value=new Date().toISOString().split('T')[0];
+  const totalNet=staffList.reduce((s,st)=>{const c=calcRow(st,ctrl);return s+c.netPay;},0);
+  document.getElementById('payPreview').innerHTML=`<strong>${staffList.length} staff</strong> &bull; Total Net Pay: <strong style="color:#16a34a;">₹${Math.round(totalNet).toLocaleString('en-IN')}</strong>`;
+  document.getElementById('payModal').style.display='flex';
+}
+function closePayModal(){document.getElementById('payModal').style.display='none';}
+
+async function submitPayment(){
+  const ctrl=getControls();
+  const rows=staffList.map(s=>{const c=calcRow(s,ctrl);return{id:s.id,basicPay:c.basic,daAmt:c.daAmt,hraAmt:c.hraAmt,gross:c.gross,daysWorked:c.dWorked,payableGross:c.payableGross,pf:c.pf,esi:c.esi,tds:c.tds,loan:c.loan,totalDed:c.totalDed,netPay:c.netPay};});
+  const body={year:ctrl.year,month:ctrl.month,paymentMode:document.getElementById('payMode').value,paymentDate:document.getElementById('payDate').value,remarks:document.getElementById('payRemarks').value,rows};
+  try{
+    const r=await fetch('/sal/api/pay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(d.ok){closePayModal();alert('Salary marked as paid! You can view slips in Payment History.');window.location='/sal/payments';}
+    else alert('Error: '+d.error);
+  }catch(e){alert('Failed: '+e.message);}
+}
 </script>
 
 <%- include('../partials/footer') %>

@@ -1,8 +1,14 @@
 <%- include('../partials/header', { title: 'Take Attendance', activePage: 'attendance' }) %>
 <div class="page-header"><div><h1>📝 Take Attendance</h1><div class="breadcrumb"><a href="/attday" style="color:rgba(255,255,255,0.8)">Attendance</a> → Take</div></div></div>
 
-<div class="toolbar">
+<div class="toolbar" style="flex-direction:column;align-items:flex-start;gap:10px">
+  <div style="display:flex;gap:8px">
+    <a href="/attday/take?class_id=<%= class_id||'' %>&date=<%= today %>&mode=day" class="btn btn-sm <%= mode==='day' ? 'btn-purple' : 'btn-outline-purple' %>">Day</a>
+    <a href="/attday/take?class_id=<%= class_id||'' %>&date=<%= today %>&mode=week" class="btn btn-sm <%= mode==='week' ? 'btn-purple' : 'btn-outline-purple' %>">Week</a>
+    <a href="/attday/take?class_id=<%= class_id||'' %>&date=<%= today %>&mode=month" class="btn btn-sm <%= mode==='month' ? 'btn-purple' : 'btn-outline-purple' %>">Month</a>
+  </div>
   <form method="GET" action="/attday/take" class="search-bar">
+    <input type="hidden" name="mode" value="<%= mode %>">
     <select name="class_id" class="form-control form-control-sm" style="width:180px">
       <option value="">Select Class</option>
       <% classes.forEach(c => { %><option value="<%= c.id %>" <%= class_id == c.id ? 'selected':'' %>><%= c.class_name %> - <%= c.section %></option><% }) %>
@@ -12,10 +18,12 @@
   </form>
 </div>
 
+<% if (mode === 'day') { %>
 <% if(students.length) { %>
 <form method="POST" action="/attday/take">
   <input type="hidden" name="class_id" value="<%= class_id %>">
   <input type="hidden" name="date" value="<%= today %>">
+  <input type="hidden" name="mode" value="day">
   <div class="table-container">
     <div class="table-header">
       <h3>Mark Attendance — <%= today %></h3>
@@ -35,10 +43,10 @@
           <td><%= i+1 %></td>
           <td><%= s.roll_no||'—' %></td>
           <td><strong><%= s.first_name %> <%= s.last_name %></strong></td>
-          <td><input type="radio" name="attendance[<%= s.id %>]" value="Present" <%= status==='Present'?'checked':'' %>></td>
-          <td><input type="radio" name="attendance[<%= s.id %>]" value="Absent" <%= status==='Absent'?'checked':'' %>></td>
-          <td><input type="radio" name="attendance[<%= s.id %>]" value="Late" <%= status==='Late'?'checked':'' %>></td>
-          <td><input type="radio" name="attendance[<%= s.id %>]" value="Leave" <%= status==='Leave'?'checked':'' %>></td>
+          <td><input type="radio" name="attendance[s<%= s.id %>]" value="Present" <%= status==='Present'?'checked':'' %>></td>
+          <td><input type="radio" name="attendance[s<%= s.id %>]" value="Absent" <%= status==='Absent'?'checked':'' %>></td>
+          <td><input type="radio" name="attendance[s<%= s.id %>]" value="Late" <%= status==='Late'?'checked':'' %>></td>
+          <td><input type="radio" name="attendance[s<%= s.id %>]" value="Leave" <%= status==='Leave'?'checked':'' %>></td>
         </tr>
         <% }) %>
       </tbody>
@@ -50,6 +58,57 @@
   <div class="no-data">No students found in this class</div>
 <% } else { %>
   <div class="no-data">Please select a class to take attendance</div>
+<% } %>
+
+<% } else { %>
+<!-- Week / Month grid mode -->
+<% if (students.length && dates.length) { %>
+<form method="POST" action="/attday/take">
+  <input type="hidden" name="class_id" value="<%= class_id %>">
+  <input type="hidden" name="mode" value="<%= mode %>">
+  <% dates.forEach(d => { %><input type="hidden" name="dates" value="<%= d %>"><% }) %>
+  <div class="table-container" style="overflow-x:auto">
+    <div class="table-header">
+      <h3><%= mode === 'week' ? 'Weekly' : 'Monthly' %> Attendance — <%= dates[0] %> to <%= dates[dates.length-1] %></h3>
+      <div style="font-size:12px;color:#666">P=Present, A=Absent, L=Late, Lv=Leave. Unmarked cells are saved as Absent.</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Roll</th><th>Name</th>
+          <% dates.forEach(d => { %><th style="min-width:64px"><%= d.slice(5) %></th><% }) %>
+        </tr>
+      </thead>
+      <tbody>
+        <% students.forEach(s => { %>
+        <tr>
+          <td><%= s.roll_no||'—' %></td>
+          <td><strong><%= s.first_name %> <%= s.last_name %></strong></td>
+          <% dates.forEach(d => {
+            const ex = existing.find(e => e.student_id === s.id && (e.date instanceof Date ? e.date.toISOString().split('T')[0] : String(e.date).slice(0,10)) === d);
+            const status = ex ? ex.status : 'Present';
+          %>
+          <td>
+            <select name="attendance[s<%= s.id %>][<%= d %>]" class="form-control form-control-sm">
+              <option value="Present" <%= status==='Present'?'selected':'' %>>P</option>
+              <option value="Absent" <%= status==='Absent'?'selected':'' %>>A</option>
+              <option value="Late" <%= status==='Late'?'selected':'' %>>L</option>
+              <option value="Leave" <%= status==='Leave'?'selected':'' %>>Lv</option>
+            </select>
+          </td>
+          <% }) %>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <div class="form-actions"><button type="submit" class="btn btn-purple">💾 Save Attendance</button><a href="/attday" class="btn btn-outline-purple">Cancel</a></div>
+  </div>
+</form>
+<% } else if(class_id) { %>
+  <div class="no-data">No students found in this class</div>
+<% } else { %>
+  <div class="no-data">Please select a class to take attendance</div>
+<% } %>
 <% } %>
 
 <script>

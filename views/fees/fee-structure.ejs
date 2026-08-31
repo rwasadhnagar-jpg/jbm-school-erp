@@ -88,21 +88,21 @@
               </div>
             </td>
             <td style="padding:10px 14px;text-align:center">
-              <select name="fee_types[<%= row.fee_head_id||row.id %>]" class="form-control" style="font-size:12px;padding:4px 8px" onchange="recalcRow(this)">
+              <select name="fee_types[f<%= row.fee_head_id||row.id %>]" class="form-control" style="font-size:12px;padding:4px 8px" onchange="recalcRow(this)">
                 <option value="Monthly" <%= (row.fee_type||'Monthly')==='Monthly'?'selected':'' %>>Monthly</option>
                 <option value="Annual" <%= row.fee_type==='Annual'?'selected':'' %>>Annual</option>
               </select>
             </td>
             <td style="padding:10px 14px;text-align:center">
               <label style="display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:12px">
-                <input type="checkbox" name="apply_late_fees[<%= row.fee_head_id||row.id %>]" value="1"
+                <input type="checkbox" name="apply_late_fees[f<%= row.fee_head_id||row.id %>]" value="1"
                   <%= row.apply_late_fee?'checked':'' %>
                   style="accent-color:#e65100;width:15px;height:15px">
                 <span style="color:#e65100">₹10/day</span>
               </label>
             </td>
             <td style="padding:10px 14px;text-align:right">
-              <input type="number" name="amounts[<%= row.fee_head_id||row.id %>]"
+              <input type="number" name="amounts[f<%= row.fee_head_id||row.id %>]"
                 class="form-control" style="text-align:right;font-size:15px;font-weight:700;color:#4A0E8F"
                 value="<%= amt>0?amt:'' %>" min="0" step="1" placeholder="0"
                 oninput="updateTotals()">

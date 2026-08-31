@@ -1,0 +1,112 @@
+<%- include('../partials/header', { title: 'Enter Marks & Remarks', activePage: 'remarks' }) %>
+<div class="page-header"><div><h1>📝 Enter Marks & Remarks</h1><div class="breadcrumb"><a href="/remarks" style="color:rgba(255,255,255,0.8)">Progress / Remarks</a> → Marks</div></div></div>
+
+<div class="toolbar">
+  <form method="GET" action="/remarks/marks" class="search-bar" style="flex-wrap:wrap">
+    <select name="class_id" class="form-control form-control-sm" style="width:160px">
+      <option value="">Select Class</option>
+      <% classes.forEach(function(c) { %><option value="<%= c.id %>" <%= String(class_id)===String(c.id)?'selected':'' %>><%= c.class_name %> - <%= c.section %></option><% }) %>
+    </select>
+    <select name="subject_id" class="form-control form-control-sm" style="width:160px">
+      <option value="">Select Subject</option>
+      <% subjects.forEach(function(s) { %><option value="<%= s.id %>" <%= String(subject_id)===String(s.id)?'selected':'' %>><%= s.name %></option><% }) %>
+    </select>
+    <select name="exam_term_id" class="form-control form-control-sm" style="width:150px">
+      <option value="">Select Term</option>
+      <% terms.forEach(function(t) { %><option value="<%= t.id %>" <%= String(exam_term_id)===String(t.id)?'selected':'' %>><%= t.name %><%= t.term_type==='unit_test' ? ' (marks only)' : '' %></option><% }) %>
+    </select>
+    <button type="submit" class="btn btn-purple btn-sm">Load</button>
+  </form>
+</div>
+
+<% if (class_id && subject_id && exam_term_id && !allowed) { %>
+  <div class="no-data">⚠️ You are not assigned to teach this subject for this class.</div>
+<% } else if (students.length) { %>
+<% const isTerm = term && term.term_type === 'term'; %>
+<form method="POST" action="/remarks/marks">
+  <input type="hidden" name="class_id" value="<%= class_id %>">
+  <input type="hidden" name="subject_id" value="<%= subject_id %>">
+  <input type="hidden" name="exam_term_id" value="<%= exam_term_id %>">
+  <div class="table-container" style="overflow-x:auto">
+    <div class="table-header"><h3>Roster (<%= students.length %> students) — <%= term ? term.name : '' %><%= isTerm ? '' : ' (marks only)' %></h3></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Roll</th><th>Name</th><th style="width:90px">Marks</th><th style="width:70px">Max</th>
+          <% if (isTerm) { %><th style="width:80px">Attendance</th><th style="min-width:320px">Remark</th><% } %>
+        </tr>
+      </thead>
+      <tbody>
+        <% students.forEach(function(s) {
+          const ex = existing.find(e => e.student_id === s.id) || {};
+          const fullName = `${s.first_name} ${s.last_name}`;
+        %>
+        <tr>
+          <td><%= s.roll_no || '—' %></td>
+          <td><strong><%= fullName %></strong></td>
+          <td>
+            <input type="number" step="0.01" class="form-control form-control-sm marks-input" data-sid="<%= s.id %>"
+              name="marks[s<%= s.id %>][marks_obtained]" value="<%= ex.marks_obtained != null ? ex.marks_obtained : '' %>">
+          </td>
+          <td>
+            <input type="number" step="0.01" class="form-control form-control-sm max-input" data-sid="<%= s.id %>"
+              name="marks[s<%= s.id %>][max_marks]" value="<%= ex.max_marks != null ? ex.max_marks : 100 %>">
+          </td>
+          <% if (isTerm) { %>
+          <td><%= s.attendancePct != null ? s.attendancePct + '%' : '—' %></td>
+          <td>
+            <textarea name="marks[s<%= s.id %>][template_remark]" class="form-control form-control-sm remark-textarea" rows="3"
+              data-sid="<%= s.id %>" data-name="<%= fullName %>" data-attendance="<%= s.attendancePct != null ? s.attendancePct : 0 %>"
+              data-subject="<%= subjectName %>"><%= ex.template_remark || '' %></textarea>
+            <button type="button" class="btn btn-outline-purple btn-xs regen-btn" data-sid="<%= s.id %>" style="margin-top:4px">🔄 Regenerate</button>
+          </td>
+          <% } %>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <div class="form-actions"><button type="submit" class="btn btn-purple">💾 Save Marks & Remarks</button><a href="/remarks" class="btn btn-outline-purple">Cancel</a></div>
+  </div>
+</form>
+
+<% if (isTerm) { %>
+<script>
+function pickTemplate(name, subject, marksPct, attendancePct) {
+  const m = marksPct == null || isNaN(marksPct) ? 0 : marksPct;
+  const a = attendancePct == null || isNaN(attendancePct) ? 0 : attendancePct;
+  if (m >= 90 && a >= 90) return `${name} has performed outstandingly in ${subject} this term, scoring ${m}% with excellent attendance of ${a}%. A consistent, dedicated learner who sets a great example for the class.`;
+  if (m >= 75 && a >= 85) return `${name} has done very well in ${subject} this term, scoring ${m}% with good attendance of ${a}%. Continued focus and practice will help push these results even higher.`;
+  if (m >= 60 && a >= 75) return `${name} has shown satisfactory progress in ${subject} this term, scoring ${m}% with attendance of ${a}%. Regular revision and more consistent classroom participation are recommended.`;
+  if (m >= 40 || a >= 60) return `${name} needs improvement in ${subject} this term, having scored ${m}% with attendance of ${a}%. Extra practice at home and closer attention in class are strongly recommended.`;
+  return `${name} requires urgent attention in ${subject} this term, scoring ${m}% with attendance of only ${a}%. We recommend a meeting with parents to discuss additional support for ${name}.`;
+}
+
+function regenerate(sid) {
+  const marksInput = document.querySelector(`.marks-input[data-sid="${sid}"]`);
+  const maxInput = document.querySelector(`.max-input[data-sid="${sid}"]`);
+  const textarea = document.querySelector(`.remark-textarea[data-sid="${sid}"]`);
+  const marks = parseFloat(marksInput.value);
+  const max = parseFloat(maxInput.value) || 100;
+  const marksPct = isNaN(marks) ? 0 : Math.round((marks / max) * 1000) / 10;
+  const text = pickTemplate(textarea.dataset.name, textarea.dataset.subject || 'this subject', marksPct, parseFloat(textarea.dataset.attendance));
+  textarea.value = text;
+}
+
+document.querySelectorAll('.regen-btn').forEach(btn => {
+  btn.addEventListener('click', () => regenerate(btn.dataset.sid));
+});
+
+// Auto-generate once on load for any row that has marks but no saved remark yet
+document.querySelectorAll('.remark-textarea').forEach(ta => {
+  if (!ta.value.trim()) regenerate(ta.dataset.sid);
+});
+</script>
+<% } %>
+
+<% } else if (class_id && subject_id && exam_term_id) { %>
+  <div class="no-data">No active students found in this class</div>
+<% } else { %>
+  <div class="no-data">Select a class, subject and exam term to begin</div>
+<% } %>
+
+<%- include('../partials/footer') %>

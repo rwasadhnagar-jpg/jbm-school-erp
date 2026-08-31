@@ -1,0 +1,45 @@
+<%- include('../partials/header', { title: 'Bulk Create Teacher Logins', activePage: 'staff' }) %>
+<div class="page-header"><div><h1>👤 Bulk Create Teacher Logins</h1><div class="breadcrumb"><a href="/teachers" style="color:rgba(255,255,255,0.8)">Staff Management</a> → Bulk Create Logins</div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">
+    Only Teaching staff who don't already have a login account are listed below. All are checked by default — untick anyone you don't want an account for yet. Emails are auto-suggested but you can edit them. After you save, each account's password is shown <strong>once</strong> — note it down or print the page to hand out to teachers.
+  </div>
+</div>
+
+<% if (rows.length) { %>
+<form method="POST" action="/teachers/bulk-accounts">
+  <div class="table-container">
+    <div class="table-header">
+      <h3>Teaching Staff Without a Login (<%= rows.length %>)</h3>
+      <div style="display:flex;gap:8px">
+        <button type="button" onclick="toggleAll(true)" class="btn btn-outline-purple btn-sm">Select All</button>
+        <button type="button" onclick="toggleAll(false)" class="btn btn-outline-purple btn-sm">Select None</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th style="width:36px"></th><th>Name</th><th>Designation</th><th>Login Email</th></tr></thead>
+      <tbody>
+        <% rows.forEach(function(s) { %>
+        <tr>
+          <td><input type="checkbox" class="row-check" name="include_<%= s.id %>" value="1" checked></td>
+          <td><strong><%= s.first_name %> <%= s.last_name %></strong></td>
+          <td><%= s.designation || '—' %></td>
+          <td><input type="email" name="email_<%= s.id %>" class="form-control form-control-sm" value="<%= s.suggestedEmail %>"></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <div class="form-actions"><button type="submit" class="btn btn-purple">💾 Create Selected Accounts</button><a href="/teachers" class="btn btn-outline-purple">Cancel</a></div>
+  </div>
+</form>
+<% } else { %>
+  <div class="no-data">Every active Teaching staff member already has a login account.</div>
+<% } %>
+
+<script>
+function toggleAll(state) {
+  document.querySelectorAll('.row-check').forEach(c => c.checked = state);
+}
+</script>
+<%- include('../partials/footer') %>

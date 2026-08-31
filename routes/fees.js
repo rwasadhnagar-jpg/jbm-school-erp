@@ -124,11 +124,12 @@ router.post('/structure/save', async (req, res) => {
       req.flash('error', 'Invalid data');
       return res.redirect('/feemanagement/structure');
     }
-    const headIds = Object.keys(amounts);
-    for (const headId of headIds) {
-      const amt = parseFloat(amounts[headId] || 0);
-      const ftype = fee_types ? (fee_types[headId] || 'Monthly') : 'Monthly';
-      const alf = apply_late_fees ? (apply_late_fees[headId] === '1' ? 1 : 0) : 0;
+    const headKeys = Object.keys(amounts);
+    for (const key of headKeys) {
+      const headId = key.startsWith('f') ? key.slice(1) : key;
+      const amt = parseFloat(amounts[key] || 0);
+      const ftype = fee_types ? (fee_types[key] || 'Monthly') : 'Monthly';
+      const alf = apply_late_fees ? (apply_late_fees[key] === '1' ? 1 : 0) : 0;
 
       // Update fee_head type + apply_late_fee
       await db.query(`UPDATE fee_heads SET fee_type=?, apply_late_fee=? WHERE id=?`, [ftype, alf, headId]);

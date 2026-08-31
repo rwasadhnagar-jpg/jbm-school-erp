@@ -1,0 +1,23 @@
+<%- include('../partials/header', { title: 'Exam Terms', activePage: 'remarks' }) %>
+<div class="page-header"><div><h1>🗓️ Exam Terms</h1><div class="breadcrumb"><a href="/remarks" style="color:rgba(255,255,255,0.8)">Progress / Remarks</a> → Exam Terms</div></div></div>
+<div class="toolbar"><a href="/remarks/terms/add" class="btn btn-purple">+ Add Exam Term</a></div>
+<div class="table-container">
+  <div class="table-header"><h3>All Exam Terms</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Name</th><th>Start Date</th><th>End Date</th><th>Default Max Marks</th></tr></thead>
+    <tbody>
+      <% if (terms.length) { terms.forEach(function(t,i) { %>
+      <tr>
+        <td><%= i+1 %></td>
+        <td><strong><%= t.name %></strong></td>
+        <td><%= t.start_date ? moment(t.start_date).format('DD MMM YYYY') : '—' %></td>
+        <td><%= t.end_date ? moment(t.end_date).format('DD MMM YYYY') : '—' %></td>
+        <td><%= t.max_marks_default %></td>
+      </tr>
+      <% }) } else { %>
+      <tr><td colspan="5" class="no-data">No exam terms yet</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

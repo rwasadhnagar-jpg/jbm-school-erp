@@ -1,0 +1,80 @@
+<%- include('../partials/header', { title: 'Progress / Remarks', activePage: 'remarks' }) %>
+<div class="page-header"><div><h1>📝 Progress / Remarks</h1><div class="breadcrumb">Enter marks, remarks & view student progress</div></div></div>
+
+<% if (admin) { %>
+<div class="toolbar">
+  <a href="/remarks/assign" class="btn btn-outline-purple btn-sm">👥 Assign Teachers</a>
+  <a href="/remarks/link-teachers" class="btn btn-outline-purple btn-sm">🔗 Link Teacher Logins</a>
+  <a href="/remarks/terms" class="btn btn-outline-purple btn-sm">🗓️ Exam Terms</a>
+  <a href="/remarks/subjects" class="btn btn-outline-purple btn-sm">📚 Subjects</a>
+</div>
+<% } %>
+
+<% if (!linked) { %>
+  <div class="dashboard-widget" style="border-left:4px solid var(--red, #dc3545)">
+    <div class="widget-body">
+      ⚠️ Your login is not yet linked to a staff record, so you can't enter marks or remarks yet.
+      Please ask the admin to link your account from <strong>Progress / Remarks → Link Teacher Logins</strong>.
+    </div>
+  </div>
+<% } %>
+
+<div class="table-container">
+  <div class="table-header"><h3>📖 Subjects You Teach</h3></div>
+  <% if (mySubjects.length) { %>
+  <table>
+    <thead><tr><th>Class</th><th>Subject</th><% if (admin) { %><th>Teacher</th><% } %><th>Exam Term</th><th></th></tr></thead>
+    <tbody>
+      <% mySubjects.forEach(function(row) { %>
+      <tr>
+        <td><%= row.class_name %> - <%= row.section %></td>
+        <td><span class="badge badge-blue"><%= row.subject_name %></span></td>
+        <% if (admin) { %><td><%= row.first_name %> <%= row.last_name %></td><% } %>
+        <td>
+          <form method="GET" action="/remarks/marks" style="display:inline-flex;gap:6px;align-items:center">
+            <input type="hidden" name="class_id" value="<%= row.class_id %>">
+            <input type="hidden" name="subject_id" value="<%= row.subject_id %>">
+            <select name="exam_term_id" class="form-control form-control-sm" style="width:150px">
+              <% terms.forEach(function(t) { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
+            </select>
+            <button type="submit" class="btn btn-purple btn-sm">Enter Marks →</button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } else { %>
+    <div class="no-data">No subjects assigned yet<% if (admin) { %> — use "Assign Teachers" above<% } %></div>
+  <% } %>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>🏫 Classes You're Class Teacher Of</h3></div>
+  <% if (myClasses.length) { %>
+  <table>
+    <thead><tr><th>Class</th><% if (admin) { %><th>Class Teacher</th><% } %><th>Exam Term</th><th></th></tr></thead>
+    <tbody>
+      <% myClasses.forEach(function(c) { %>
+      <tr>
+        <td><%= c.class_name %> - <%= c.section %></td>
+        <% if (admin) { %><td><%= c.first_name ? (c.first_name + ' ' + c.last_name) : '—' %></td><% } %>
+        <td>
+          <form method="GET" action="/remarks/overall" style="display:inline-flex;gap:6px;align-items:center">
+            <input type="hidden" name="class_id" value="<%= c.id %>">
+            <select name="exam_term_id" class="form-control form-control-sm" style="width:150px">
+              <% terms.forEach(function(t) { %><option value="<%= t.id %>"><%= t.name %></option><% }) %>
+            </select>
+            <button type="submit" class="btn btn-purple btn-sm">Enter Overall Remarks →</button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } else { %>
+    <div class="no-data">Not a class teacher for any class</div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,15 @@
+<%- include('../partials/header', { title: 'Add Subject', activePage: 'remarks' }) %>
+<div class='page-header'><div><h1>📚 Add Subject</h1></div></div>
+<form method='POST' action='/remarks/subjects/add'>
+<div class='form-card'>
+  <div class='form-card-header'>Subject Details</div>
+  <div class='form-card-body'>
+    <div class='form-grid'>
+      <div class='form-group'><label>Name *</label><input type='text' name='name' class='form-control' required></div>
+      <div class='form-group'><label>Code</label><input type='text' name='code' class='form-control' placeholder='e.g. MAT'></div>
+    </div>
+  </div>
+  <div class='form-actions'><button type='submit' class='btn btn-purple'>💾 Save Subject</button><a href='/remarks/subjects' class='btn btn-outline-purple'>Cancel</a></div>
+</div>
+</form>
+<%- include('../partials/footer') %>

@@ -1,0 +1,34 @@
+<%- include('../partials/header', { title: 'Assign Teacher', activePage: 'remarks' }) %>
+<div class='page-header'><div><h1>👥 Assign Teacher</h1></div></div>
+<form method='POST' action='/remarks/assign/add'>
+<div class='form-card'>
+  <div class='form-card-header'>Assignment Details</div>
+  <div class='form-card-body'>
+    <div class='form-grid'>
+      <div class='form-group'>
+        <label>Teacher *</label>
+        <select name='staff_id' class='form-control' required>
+          <option value=''>-- Select Teacher --</option>
+          <% staffList.forEach(function(s) { %><option value='<%= s.id %>'><%= s.first_name %> <%= s.last_name %></option><% }) %>
+        </select>
+      </div>
+      <div class='form-group'>
+        <label>Subject *</label>
+        <select name='subject_id' class='form-control' required>
+          <option value=''>-- Select Subject --</option>
+          <% subjects.forEach(function(s) { %><option value='<%= s.id %>'><%= s.name %></option><% }) %>
+        </select>
+      </div>
+      <div class='form-group'>
+        <label>Class *</label>
+        <select name='class_id' class='form-control' required>
+          <option value=''>-- Select Class --</option>
+          <% classes.forEach(function(c) { %><option value='<%= c.id %>'><%= c.class_name %> - <%= c.section %></option><% }) %>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class='form-actions'><button type='submit' class='btn btn-purple'>💾 Save Assignment</button><a href='/remarks/assign' class='btn btn-outline-purple'>Cancel</a></div>
+</div>
+</form>
+<%- include('../partials/footer') %>

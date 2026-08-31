@@ -1,0 +1,17 @@
+<%- include('../partials/header', { title: 'Subjects', activePage: 'remarks' }) %>
+<div class="page-header"><div><h1>📚 Subjects</h1><div class="breadcrumb"><a href="/remarks" style="color:rgba(255,255,255,0.8)">Progress / Remarks</a> → Subjects</div></div></div>
+<div class="toolbar"><a href="/remarks/subjects/add" class="btn btn-purple">+ Add Subject</a></div>
+<div class="table-container">
+  <div class="table-header"><h3>All Subjects</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Name</th><th>Code</th></tr></thead>
+    <tbody>
+      <% if (subjects.length) { subjects.forEach(function(s,i) { %>
+      <tr><td><%= i+1 %></td><td><strong><%= s.name %></strong></td><td><%= s.code || '—' %></td></tr>
+      <% }) } else { %>
+      <tr><td colspan="3" class="no-data">No subjects yet</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>
