@@ -10,14 +10,11 @@ jobs:
         run: |
           sudo apt-get install -y sshpass -q
           sshpass -e ssh -o StrictHostKeyChecking=no -p 65002 u502587017@191.101.230.15 "
-            echo '=== node processes ===' && ps aux | grep node | grep -v grep
-            echo '=== node_modules exists? ===' && ls ~/domains/erp.jbmpschool.in/node_modules | head -5 2>/dev/null || echo 'MISSING node_modules!'
-            echo '=== web-push installed? ===' && ls ~/domains/erp.jbmpschool.in/node_modules/web-push 2>/dev/null && echo OK || echo 'MISSING web-push!'
-            echo '=== .env exists? ===' && ls ~/domains/erp.jbmpschool.in/.env 2>/dev/null || echo 'MISSING .env!'
-            echo '=== npm start ===' && cat ~/domains/erp.jbmpschool.in/package.json | grep -A2 scripts
-            echo '=== manual npm install (visible errors) ===' && cd ~/domains/erp.jbmpschool.in && npm install --production 2>&1 | tail -40
-            echo '=== killing stale erp.jbmpschool.in node worker(s) to force respawn ===' && pkill -f 'lsnode:/home/u502587017/domains/erp.jbmpschool.in/nodejs' && echo killed || echo 'no matching process found'
-            sleep 3
-            echo '=== node processes after kill ===' && ps aux | grep node | grep -v grep
-            echo '=== local curl to app port 8080 ===' && curl -s -o /dev/null -w 'status: %{http_code}\n' http://127.0.0.1:8080/login
+            echo '=== whoami/pwd ===' && whoami && pwd
+            echo '=== nodevenv dirs ===' && ls -la ~/nodevenv 2>/dev/null || echo 'no ~/nodevenv'
+            echo '=== find node/npm binaries ===' && find ~ -maxdepth 6 -iname 'npm' -type f 2>/dev/null
+            echo '=== find activate scripts ===' && find ~ -maxdepth 6 -iname 'activate' 2>/dev/null
+            echo '=== .bash_profile / .bashrc mentions of node ===' && grep -i node ~/.bash_profile ~/.bashrc 2>/dev/null
+            echo '=== app .htaccess / lsnode config ===' && cat ~/domains/erp.jbmpschool.in/.htaccess 2>/dev/null | head -30
+            echo '=== app root listing ===' && ls -la ~/domains/erp.jbmpschool.in/ | head -30
           "
