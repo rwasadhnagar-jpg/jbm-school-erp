@@ -89,6 +89,12 @@ router.get('/dashboard', requirePortalUser, async (req, res) => {
   if (req.session.user && req.session.user.role === 'parent') {
     try {
       const children = req.session.user.children || [];
+      const now = new Date();
+      const dow = now.getDay();
+      const monday = new Date(now); monday.setDate(now.getDate() + (dow === 0 ? -6 : 1 - dow));
+      const mondayStr = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
       const childData = [];
       for (const child of children) {
         const [[student]] = await db.query(
@@ -100,9 +106,24 @@ router.get('/dashboard', requirePortalUser, async (req, res) => {
         const [onlinePay] = await db.query(
           `SELECT COALESCE(SUM(total_amount),0) as total FROM online_payments WHERE student_id=? AND status!='Rejected'`, [child.id]
         );
+        const [[weekAtt]] = await db.query(
+          `SELECT SUM(status='Present') AS present, COUNT(*) AS total FROM attendance_student WHERE student_id=? AND date BETWEEN ? AND ?`,
+          [child.id, mondayStr, todayStr]
+        );
+        const weekAttTotal = Number(weekAtt.total) || 0;
+        const weekAttPct = weekAttTotal ? Math.round((Number(weekAtt.present) || 0) / weekAttTotal * 100) : null;
+        let weekNote = null;
+        if (student.class_id) {
+          const [[wu]] = await db.query(
+            'SELECT note FROM weekly_updates WHERE class_id=? AND week_start_date=?', [student.class_id, mondayStr]
+          ).catch(() => [[null]]);
+          weekNote = wu ? wu.note : null;
+        }
         childData.push({
           student,
-          totalPaid: parseFloat(officePay[0].total) + parseFloat(onlinePay[0].total)
+          totalPaid: parseFloat(officePay[0].total) + parseFloat(onlinePay[0].total),
+          weekAttendancePct: weekAttPct,
+          weekNote
         });
       }
       const [recentNotices] = await db.query('SELECT * FROM notices ORDER BY created_at DESC LIMIT 5');

@@ -1,0 +1,61 @@
+<%- include('../partials/header', { title: 'Monthly Review History', activePage: 'performance' }) %>
+<div class="page-header"><div><h1>🗒️ Monthly Review History</h1><div class="breadcrumb">Teacher Assessment → Monthly History</div></div></div>
+
+<div class="toolbar">
+  <form method="GET" action="/performance/monthly" class="search-bar" style="flex-wrap:wrap">
+    <input type="month" name="month" class="form-control form-control-sm" value="<%= month ? month.slice(0,7) : '' %>" onchange="this.value=this.value+'-01'">
+    <select name="rater" class="form-control form-control-sm" style="width:160px">
+      <option value="">All Raters</option>
+      <option value="Principal" <%= rater==='Principal'?'selected':'' %>>Principal</option>
+      <option value="Vice Principal" <%= rater==='Vice Principal'?'selected':'' %>>Vice Principal</option>
+      <option value="Incharge" <%= rater==='Incharge'?'selected':'' %>>Incharge</option>
+    </select>
+    <button type="submit" class="btn btn-purple btn-sm">Filter</button>
+    <a href="/performance/monthly" class="btn btn-outline-purple btn-sm">Clear</a>
+  </form>
+</div>
+
+<% if (month && (monthTop.length || monthBottom.length)) { %>
+<div class="cards-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px">
+  <div class="card">
+    <div class="card-header"><h3>🏆 Best This Month</h3></div>
+    <div class="card-body">
+      <% if (monthTop.length) { monthTop.forEach((e,i) => { %>
+        <p><%= ['🥇','🥈','🥉'][i] || '•' %> <a href="/performance/annual/<%= e.staff.id %>"><strong><%= e.staff.first_name %> <%= e.staff.last_name %></strong></a> — Month Score: <strong><%= e.combined %></strong></p>
+      <% }) } else { %><p class="no-data" style="padding:0">No scored teachers this month</p><% } %>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>⚠️ Needs Attention This Month</h3></div>
+    <div class="card-body">
+      <% if (monthBottom.length) { monthBottom.forEach(e => { %>
+        <p>• <a href="/performance/annual/<%= e.staff.id %>"><strong><%= e.staff.first_name %> <%= e.staff.last_name %></strong></a> — Month Score: <strong><%= e.combined %></strong></p>
+      <% }) } else { %><p class="no-data" style="padding:0">No scored teachers this month</p><% } %>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<div class="table-container" style="overflow-x:auto">
+  <div class="table-header"><h3><%= rows.length %> Entries</h3></div>
+  <table>
+    <thead><tr><th>Month</th><th>Teacher</th><th>Rater</th><th>Month Score</th><th>Late Arr.</th><th>Complaints</th><th>Discipline</th><th>Notes</th></tr></thead>
+    <tbody>
+      <% if (rows.length) { rows.forEach(r => { %>
+      <tr>
+        <td><%= new Date(r.month_date).toLocaleDateString('en-IN',{month:'short',year:'numeric'}) %></td>
+        <td><strong><%= r.first_name %> <%= r.last_name %></strong></td>
+        <td><span class="badge badge-blue"><%= r.rater %></span></td>
+        <td><%= r.score != null ? r.score : '—' %></td>
+        <td><%= r.late_arrivals %></td>
+        <td><%= r.parent_complaints %></td>
+        <td><%= r.discipline_issues %></td>
+        <td style="max-width:220px;white-space:pre-wrap"><%= r.notes || '' %></td>
+      </tr>
+      <% }) } else { %>
+        <tr><td colspan="8" class="no-data">No entries found</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

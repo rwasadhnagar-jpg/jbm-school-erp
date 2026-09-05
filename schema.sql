@@ -694,3 +694,15 @@ INSERT IGNORE INTO `subjects` (`name`, `code`) VALUES
 ('English','ENG'), ('Hindi','HIN'), ('Mathematics','MAT'), ('Science','SCI'),
 ('Social Studies','SST'), ('Computer Science','CS'), ('Physical Education','PE'),
 ('Art & Craft','ART'), ('Environmental Studies','EVS');
+
+-- 43. Weekly Updates (lightweight per-class weekly note, added 2026-09-02)
+CREATE TABLE IF NOT EXISTS `weekly_updates` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `class_id` int NOT NULL,
+  `week_start_date` date NOT NULL,
+  `note` text DEFAULT NULL,
+  `updated_by` int DEFAULT NULL,
+  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `class_week` (`class_id`,`week_start_date`)
+);

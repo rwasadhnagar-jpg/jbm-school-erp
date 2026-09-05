@@ -1,0 +1,42 @@
+<%- include('../partials/header', { title: 'Staff Roster', activePage: 'performance' }) %>
+<div class="page-header"><div><h1>📋 Assessment Roster</h1><div class="breadcrumb">Teacher Assessment → Roster</div></div></div>
+
+<div class="toolbar">
+  <a href="/performance/roster/import" class="btn btn-outline-purple">📥 Import from Spreadsheet</a>
+  <a href="/teachers/add" class="btn btn-outline-purple">+ Add Staff</a>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>Staff (<%= staffList.length %>)</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Name</th><th>Joining Date</th><th>Date of Leaving</th><th>Years of Service (manual)</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      <% if (staffList.length) { staffList.forEach((s,i) => { %>
+      <tr>
+        <td><%= i+1 %></td>
+        <td><strong><%= s.first_name %> <%= s.last_name %></strong></td>
+        <td><%= s.joining_date ? s.joining_date.toString().slice(0,10) : '—' %></td>
+        <td><%= s.date_of_leaving ? s.date_of_leaving.toString().slice(0,10) : '—' %></td>
+        <td><%= s.years_of_service_override != null ? s.years_of_service_override : '—' %></td>
+        <td><span class="badge <%= s.date_of_leaving ? 'badge-red' : 'badge-green' %>"><%= s.date_of_leaving ? 'Left' : 'Active' %></span></td>
+        <td>
+          <button type="button" class="btn btn-outline-purple btn-xs" onclick="document.getElementById('edit-<%= s.id %>').classList.toggle('hidden-row')">✏️ Edit</button>
+        </td>
+      </tr>
+      <tr id="edit-<%= s.id %>" class="hidden-row">
+        <td colspan="7">
+          <form method="POST" action="/performance/roster/<%= s.id %>/edit" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;padding:10px 0">
+            <div class="form-group"><label>Date of Leaving</label><input type="date" name="date_of_leaving" class="form-control form-control-sm" value="<%= s.date_of_leaving ? s.date_of_leaving.toString().slice(0,10) : '' %>"></div>
+            <div class="form-group"><label>Years of Service (manual)</label><input type="number" step="0.1" name="years_of_service_override" class="form-control form-control-sm" value="<%= s.years_of_service_override != null ? s.years_of_service_override : '' %>"></div>
+            <button type="submit" class="btn btn-purple btn-sm">Save</button>
+          </form>
+        </td>
+      </tr>
+      <% }) } else { %>
+        <tr><td colspan="7" class="no-data">No staff found — <a href="/performance/roster/import">import from the spreadsheet</a> to get started.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<style>.hidden-row { display: none; }</style>
+<%- include('../partials/footer') %>

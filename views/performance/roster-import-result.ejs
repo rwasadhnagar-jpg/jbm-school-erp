@@ -1,0 +1,25 @@
+<%- include('../partials/header', { title: 'Roster Import Result', activePage: 'performance' }) %>
+<div class="page-header"><div><h1>✅ Roster Import Result</h1><div class="breadcrumb">Teacher Assessment → Roster → Import → Result</div></div></div>
+
+<div class="table-container">
+  <div class="table-header"><h3><%= results.length %> Row<%= results.length>1?'s':'' %> Processed</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Name</th><th>Status</th></tr></thead>
+    <tbody>
+      <% results.forEach(function(r,i) { %>
+      <tr>
+        <td><%= i+1 %></td>
+        <td><strong><%= r.name %></strong></td>
+        <td><span class="badge <%= r.status.startsWith('created') ? 'badge-green' : (r.status.startsWith('error') ? 'badge-red' : 'badge-blue') %>"><%= r.status %></span></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<div class="form-actions">
+  <a href="/performance/roster/import" class="btn btn-outline-purple">← Import More</a>
+  <a href="/performance/roster" class="btn btn-purple">Back to Roster →</a>
+</div>
+
+<%- include('../partials/footer') %>

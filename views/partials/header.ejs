@@ -37,6 +37,9 @@
   <% if (role === 'admin') { %>
   <div class="sidebar-section">
     <div class="sidebar-section-title">Academic</div>
+    <a href="/weekly" class="sidebar-item <%= activePage === 'weekly' ? 'active' : '' %>">
+      <span class="icon">🗓️</span><span class="label">This Week</span>
+    </a>
     <a href="/timetablemanagement" class="sidebar-item <%= activePage === 'timetable' ? 'active' : '' %>">
       <span class="icon">📅</span><span class="label">Timetable</span>
     </a>
@@ -46,12 +49,32 @@
   <% if (role === 'teacher') { %>
   <div class="sidebar-section">
     <div class="sidebar-section-title">My Class</div>
+    <a href="/weekly" class="sidebar-item <%= activePage === 'weekly' ? 'active' : '' %>">
+      <span class="icon">🗓️</span><span class="label">This Week</span>
+    </a>
     <a href="/attday" class="sidebar-item <%= activePage === 'attendance' ? 'active' : '' %>">
       <span class="icon">✅</span><span class="label">Attendance</span>
     </a>
     <a href="/remarks" class="sidebar-item <%= activePage === 'remarks' ? 'active' : '' %>">
       <span class="icon">📝</span><span class="label">Progress / Remarks</span>
     </a>
+    <a href="/performance/my-report-card" class="sidebar-item <%= activePage === 'performance' ? 'active' : '' %>">
+      <span class="icon">📈</span><span class="label">My Report Card</span>
+    </a>
+  </div>
+  <% } %>
+
+  <% if (['principal','vice_principal','incharge'].includes(role)) { %>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Teacher Assessment</div>
+    <a href="/performance/monthly/entry" class="sidebar-item <%= activePage === 'performance' ? 'active' : '' %>">
+      <span class="icon">📝</span><span class="label">Score Entry</span>
+    </a>
+    <% if (role === 'principal') { %>
+    <a href="/performance/memos" class="sidebar-item <%= activePage === 'performance' ? 'active' : '' %>">
+      <span class="icon">⚠️</span><span class="label">Memos</span>
+    </a>
+    <% } %>
   </div>
   <% } %>
 
@@ -78,6 +101,30 @@
     </a>
     <a href="/hostel" class="sidebar-item <%= activePage === 'hostel' ? 'active' : '' %>">
       <span class="icon">🏠</span><span class="label">Hostel</span>
+    </a>
+  </div>
+  <% } %>
+
+  <% if (role === 'admin') { %>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Teacher Assessment</div>
+    <a href="/performance/annual" class="sidebar-item <%= activePage === 'performance' ? 'active' : '' %>">
+      <span class="icon">📈</span><span class="label">Annual Summary</span>
+    </a>
+    <a href="/performance/monthly" class="sidebar-item <%= activePage === 'performance' ? 'active' : '' %>">
+      <span class="icon">🗒️</span><span class="label">Monthly History</span>
+    </a>
+    <a href="/performance/memos" class="sidebar-item <%= activePage === 'performance' ? 'active' : '' %>">
+      <span class="icon">⚠️</span><span class="label">Memos</span>
+    </a>
+    <a href="/performance/roster" class="sidebar-item <%= activePage === 'performance' ? 'active' : '' %>">
+      <span class="icon">📋</span><span class="label">Assessment Roster</span>
+    </a>
+    <a href="/performance/raters" class="sidebar-item <%= activePage === 'performance' ? 'active' : '' %>">
+      <span class="icon">🔑</span><span class="label">Rater Logins</span>
+    </a>
+    <a href="/performance/settings" class="sidebar-item <%= activePage === 'performance' ? 'active' : '' %>">
+      <span class="icon">⚖️</span><span class="label">Weights & Settings</span>
     </a>
   </div>
   <% } %>

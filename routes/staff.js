@@ -60,6 +60,42 @@ router.post('/add', async (req, res) => {
   }
 });
 
+// ─── Edit Staff ───────────────────────────────────────────────────────────────
+router.get('/:id/edit', async (req, res) => {
+  try {
+    const [[staffRow]] = await db.query('SELECT * FROM staff WHERE id=?', [req.params.id]);
+    if (!staffRow) { req.flash('error', 'Staff not found'); return res.redirect('/teachers'); }
+    res.render('staff/edit', { title: 'Edit Staff', activePage: 'staff', staffRow });
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Could not load staff record');
+    res.redirect('/teachers');
+  }
+});
+
+router.post('/:id/edit', async (req, res) => {
+  try {
+    const b = req.body;
+    await db.query(
+      `UPDATE staff SET first_name=?, last_name=?, gender=?, dob=?, email=?, phone=?, designation=?, department=?,
+        staff_type=?, employment_type=?, joining_date=?, date_of_leaving=?, years_of_service_override=?,
+        qualification=?, address=?, is_active=?
+       WHERE id=?`,
+      [b.first_name, b.last_name, b.gender || null, b.dob || null, b.email || null, b.phone || null,
+       b.designation || null, b.department || null, b.staff_type || 'Teaching', b.employment_type || 'Permanent',
+       b.joining_date || null, b.date_of_leaving || null, b.years_of_service_override || null,
+       b.qualification || null, b.address || null, b.date_of_leaving ? 0 : 1,
+       req.params.id]
+    );
+    req.flash('success', 'Staff record updated');
+    res.redirect('/teachers');
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Failed to update staff: ' + err.message);
+    res.redirect(`/teachers/${req.params.id}/edit`);
+  }
+});
+
 // ─── Bulk Create Teacher Login Accounts ──────────────────────────────────────
 router.get('/bulk-accounts', async (req, res) => {
   try {

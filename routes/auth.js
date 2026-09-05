@@ -6,7 +6,7 @@ const db = require('../db');
 // Ensure users table supports parent/student roles
 (async () => {
   try {
-    await db.query(`ALTER TABLE users MODIFY COLUMN role ENUM('admin','teacher','accountant','librarian','transport','parent','student') DEFAULT 'teacher'`);
+    await db.query(`ALTER TABLE users MODIFY COLUMN role ENUM('admin','teacher','accountant','librarian','transport','parent','student','principal','vice_principal','incharge') DEFAULT 'teacher'`);
   } catch(e) {}
 })();
 

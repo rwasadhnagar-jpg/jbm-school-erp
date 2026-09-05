@@ -1,5 +1,5 @@
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+require('dotenv').config({ path: path.join(__dirname, process.env.ENV_FILE || '.env') });
 const express = require('express');
 const session = require('express-session');
 const flash = require('connect-flash');
@@ -17,8 +17,8 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Middleware
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: '10mb', parameterLimit: 100000 }));
+app.use(express.json({ limit: '10mb' }));
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -76,6 +76,8 @@ const certificateRoutes = require('./routes/certificates');
 const smsRoutes = require('./routes/sms');
 const portalRoutes = require('./routes/student');
 const remarksRoutes = require('./routes/remarks');
+const weeklyRoutes = require('./routes/weekly');
+const performanceRoutes = require('./routes/performance');
 const notifications = require('./routes/notifications');
 
 app.use('/', authRoutes);
@@ -92,6 +94,8 @@ app.use('/hostel', requireRole('admin'), hostelRoutes);
 app.use('/sal', requireRole('admin', 'accountant'), salaryRoutes);
 app.use('/notices', requireRole('admin'), noticeRoutes);
 app.use('/remarks', requireRole('admin', 'teacher'), remarksRoutes);
+app.use('/weekly', requireRole('admin', 'teacher'), weeklyRoutes);
+app.use('/performance', requireRole('admin', 'teacher', 'principal', 'vice_principal', 'incharge'), performanceRoutes);
 app.use('/configuration', requireRole('admin'), configRoutes);
 app.use('/certificates', requireRole('admin'), certificateRoutes);
 app.use('/sms', requireRole('admin'), smsRoutes);
@@ -184,3 +188,61 @@ async function runMarksReminder() {
   } catch (e) { console.error('marks reminder failed:', e.message); }
 }
 cron.schedule('0 9 * * *', runMarksReminder, { timezone: 'Asia/Kolkata' });
+
+// Monday 8 AM: remind class teachers who haven't posted this week's class update yet
+async function runWeeklyUpdateReminder() {
+  try {
+    const now = new Date();
+    const day = now.getDay(); // 0=Sun..6=Sat
+    const diffToMon = (day === 0 ? -6 : 1 - day);
+    const monday = new Date(now); monday.setDate(now.getDate() + diffToMon);
+    const mondayStr = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
+
+    const [classes] = await db.query(
+      `SELECT c.id, c.class_name, c.section, u.id AS user_id
+       FROM classes c JOIN users u ON u.staff_id = c.class_teacher_id
+       WHERE c.class_teacher_id IS NOT NULL AND c.academic_year_id=1`
+    );
+    for (const c of classes) {
+      const [[row]] = await db.query('SELECT COUNT(*) cnt FROM weekly_updates WHERE class_id=? AND week_start_date=?', [c.id, mondayStr]);
+      if (Number(row.cnt) === 0) {
+        await notifications.sendPushToUser(c.user_id, {
+          title: 'Weekly Update Reminder',
+          body: `Add this week's class update for ${c.class_name}-${c.section}.`
+        });
+      }
+    }
+  } catch (e) { console.error('weekly update reminder failed:', e.message); }
+}
+cron.schedule('0 8 * * 1', runWeeklyUpdateReminder, { timezone: 'Asia/Kolkata' });
+
+// 3rd of each month, 9 AM: remind each rater (Principal/Vice Principal/Incharge) of staff
+// still missing last month's performance review from them
+async function runPerformanceReviewReminder() {
+  try {
+    const now = new Date();
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthStr = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}-01`;
+    const raterRoles = { principal: 'Principal', vice_principal: 'Vice Principal', incharge: 'Incharge' };
+    const [[{ cnt: totalStaff }]] = await db.query("SELECT COUNT(*) cnt FROM staff WHERE staff_type='Teaching' AND is_active=1");
+    if (Number(totalStaff) === 0) return;
+    for (const [role, raterLabel] of Object.entries(raterRoles)) {
+      const [[row]] = await db.query(
+        `SELECT COUNT(DISTINCT staff_id) cnt FROM performance_monthly_reviews
+         WHERE month_date=? AND rater=? AND (syllabus_pace IS NOT NULL OR classroom_mgmt IS NOT NULL
+           OR homework_correction IS NOT NULL OR parent_comm IS NOT NULL OR admin_compliance IS NOT NULL
+           OR cocurricular IS NOT NULL OR professional_dev IS NOT NULL OR behaviour_teamwork IS NOT NULL
+           OR overall_holistic IS NOT NULL)`,
+        [prevMonthStr, raterLabel]
+      );
+      const missing = Number(totalStaff) - Number(row.cnt);
+      if (missing > 0) {
+        await notifications.sendPushToRole(role, {
+          title: 'Monthly Teacher Reviews Due',
+          body: `${missing} teacher(s) still need last month's review from you.`
+        });
+      }
+    }
+  } catch (e) { console.error('performance review reminder failed:', e.message); }
+}
+cron.schedule('0 9 3 * *', runPerformanceReviewReminder, { timezone: 'Asia/Kolkata' });

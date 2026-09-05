@@ -1,0 +1,39 @@
+<%- include('../partials/header', { title: 'Edit Staff', activePage: 'staff' }) %>
+<div class="page-header"><div><h1>✏️ Edit Staff Member</h1><div class="breadcrumb"><a href="/teachers" style="color:rgba(255,255,255,0.8)">Staff</a> → Edit</div></div></div>
+<form method="POST" action="/teachers/<%= staffRow.id %>/edit">
+<div class="form-card">
+  <div class="form-card-header">👩‍🏫 Staff Details</div>
+  <div class="form-card-body">
+    <div class="form-grid">
+      <div class="form-group"><label>First Name <span class="required">*</span></label><input type="text" name="first_name" class="form-control" value="<%= staffRow.first_name %>" required></div>
+      <div class="form-group"><label>Last Name</label><input type="text" name="last_name" class="form-control" value="<%= staffRow.last_name || '' %>"></div>
+      <div class="form-group"><label>Gender</label><select name="gender" class="form-control">
+        <option value="">Select</option>
+        <option <%= staffRow.gender==='Male'?'selected':'' %>>Male</option>
+        <option <%= staffRow.gender==='Female'?'selected':'' %>>Female</option>
+      </select></div>
+      <div class="form-group"><label>Date of Birth</label><input type="date" name="dob" class="form-control" value="<%= staffRow.dob ? staffRow.dob.toString().slice(0,10) : '' %>"></div>
+      <div class="form-group"><label>Phone</label><input type="tel" name="phone" class="form-control" maxlength="10" value="<%= staffRow.phone || '' %>"></div>
+      <div class="form-group"><label>Email</label><input type="email" name="email" class="form-control" value="<%= staffRow.email || '' %>"></div>
+      <div class="form-group"><label>Designation</label><input type="text" name="designation" class="form-control" value="<%= staffRow.designation || '' %>" placeholder="e.g. PGT English"></div>
+      <div class="form-group"><label>Department</label><input type="text" name="department" class="form-control" value="<%= staffRow.department || '' %>"></div>
+      <div class="form-group"><label>Staff Type</label><select name="staff_type" class="form-control">
+        <option <%= staffRow.staff_type==='Teaching'?'selected':'' %>>Teaching</option>
+        <option <%= staffRow.staff_type==='Non-Teaching'?'selected':'' %>>Non-Teaching</option>
+      </select></div>
+      <div class="form-group"><label>Employment Type</label><select name="employment_type" class="form-control">
+        <option <%= staffRow.employment_type==='Permanent'?'selected':'' %>>Permanent</option>
+        <option <%= staffRow.employment_type==='Contractual'?'selected':'' %>>Contractual</option>
+        <option <%= staffRow.employment_type==='Part-Time'?'selected':'' %>>Part-Time</option>
+      </select></div>
+      <div class="form-group"><label>Joining Date</label><input type="date" name="joining_date" class="form-control" value="<%= staffRow.joining_date ? staffRow.joining_date.toString().slice(0,10) : '' %>"></div>
+      <div class="form-group"><label>Date of Leaving <span style="font-weight:normal;color:#777">(blank = active)</span></label><input type="date" name="date_of_leaving" class="form-control" value="<%= staffRow.date_of_leaving ? staffRow.date_of_leaving.toString().slice(0,10) : '' %>"></div>
+      <div class="form-group"><label>Years of Service (manual) <span style="font-weight:normal;color:#777">if joining date unknown</span></label><input type="number" step="0.1" name="years_of_service_override" class="form-control" value="<%= staffRow.years_of_service_override != null ? staffRow.years_of_service_override : '' %>"></div>
+      <div class="form-group"><label>Qualification</label><input type="text" name="qualification" class="form-control" value="<%= staffRow.qualification || '' %>"></div>
+    </div>
+    <div class="form-group" style="margin-top:12px"><label>Address</label><textarea name="address" class="form-control" rows="2"><%= staffRow.address || '' %></textarea></div>
+  </div>
+</div>
+<div class="form-card"><div class="form-actions"><button type="submit" class="btn btn-purple">💾 Save Changes</button><a href="/teachers" class="btn btn-outline-purple">Cancel</a></div></div>
+</form>
+<%- include('../partials/footer') %>

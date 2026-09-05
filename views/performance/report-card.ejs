@@ -1,0 +1,76 @@
+<%- include('../partials/header', { title: 'Teacher Report Card', activePage: 'performance' }) %>
+<div class="page-header"><div><h1>📈 Teacher Report Card <% if (rankLabel) { %><span class="badge <%= rankLabel.startsWith('⚠️') ? 'badge-red' : 'badge-green' %>" style="font-size:13px;vertical-align:middle"><%= rankLabel %></span><% } %></h1><div class="breadcrumb"><% if (!restricted) { %><a href="/performance/annual" style="color:rgba(255,255,255,0.8)">Annual Summary</a> → <% } %><%= staff.first_name %> <%= staff.last_name %></div></div>
+  <% if (!restricted) { %><a href="/performance/annual/<%= staff.id %>/pdf" class="btn btn-outline">⬇️ Download PDF</a><% } else { %><a href="/performance/my-report-card/pdf" class="btn btn-outline">⬇️ Download PDF</a><% } %>
+</div>
+
+<div class="cards-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px">
+  <div class="card">
+    <div class="card-header"><h3>👤 Staff Details</h3></div>
+    <div class="card-body">
+      <p><strong>Name:</strong> <%= staff.first_name %> <%= staff.last_name %></p>
+      <p><strong>Designation:</strong> <%= staff.designation || '—' %></p>
+      <p><strong>Status:</strong> <span class="badge <%= staff.date_of_leaving ? 'badge-red' : 'badge-green' %>"><%= staff.date_of_leaving ? 'Left' : 'Active' %></span></p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>📊 Annual Numbers</h3></div>
+    <div class="card-body">
+      <p><strong>Months Logged:</strong> <%= summary.monthsLogged %></p>
+      <p><strong>Annual Performance Score:</strong> <%= summary.annualPerf != null ? summary.annualPerf : '—' %></p>
+      <p><strong>Years of Service:</strong> <%= summary.years != null ? Math.round(summary.years*10)/10 : '—' %></p>
+      <p><strong>Loyalty Score:</strong> <%= summary.loyalty != null ? summary.loyalty : '—' %></p>
+      <p><strong>Behaviour Score:</strong> <%= summary.behaviour != null ? summary.behaviour : '—' %></p>
+      <p><strong>Role &amp; Responsibility:</strong> <%= summary.roleResp != null ? summary.roleResp : '—' %></p>
+      <p><strong>Weighted Score:</strong> <%= summary.weighted != null ? summary.weighted : '—' %></p>
+      <% if (!restricted) { %>
+      <p><strong>Band:</strong> <% if (summary.band) { %><span class="badge <%= summary.band==='Top Performer' ? 'badge-green' : (summary.band==='Average / Consider' ? 'badge-blue' : 'badge-red') %>"><%= summary.band %></span><% } else { %>—<% } %></p>
+      <p><strong>Proposed Increment:</strong> Rs. <%= increment ? increment.toLocaleString('en-IN') : '0' %></p>
+      <p><strong>Recommended Action:</strong> <%= action %></p>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<div class="table-container" style="margin-bottom:16px">
+  <div class="table-header"><h3>Month-by-Month Score Trend</h3></div>
+  <table>
+    <thead><tr><th>Month</th><th>Combined Month Score</th><% if (!restricted) { %><th>Rater Breakdown</th><% } %></tr></thead>
+    <tbody>
+      <% if (summary.monthCombined.length) { summary.monthCombined.forEach(m => { %>
+      <tr>
+        <td><%= new Date(m.month_date).toLocaleDateString('en-IN',{month:'long',year:'numeric'}) %></td>
+        <td><strong><%= m.combined %></strong></td>
+        <% if (!restricted) { %>
+        <td>
+          <% m.raterScores.forEach(rs => { %>
+            <span class="badge badge-blue" style="margin-right:4px"><%= rs.rater %>: <%= rs.score != null ? rs.score : '—' %></span>
+          <% }) %>
+        </td>
+        <% } %>
+      </tr>
+      <% }) } else { %>
+        <tr><td colspan="3" class="no-data">No months logged yet</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>Memo History</h3></div>
+  <table>
+    <thead><tr><th>Date</th><th>Category</th><th>Description</th></tr></thead>
+    <tbody>
+      <% if (memos.length) { memos.forEach(m => { %>
+      <tr>
+        <td><%= new Date(m.memo_date).toLocaleDateString('en-IN') %></td>
+        <td><span class="badge <%= m.category==='Discipline' ? 'badge-red' : (m.category==='Punctuality' ? 'badge-blue' : 'badge-green') %>"><%= m.category %></span></td>
+        <td><%= m.description || '—' %></td>
+      </tr>
+      <% }) } else { %>
+        <tr><td colspan="3" class="no-data">No memos on record</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../partials/footer') %>

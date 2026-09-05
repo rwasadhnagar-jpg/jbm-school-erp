@@ -57,6 +57,26 @@
   </div>
 </div>
 
+<!-- This Week -->
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-header">
+    🗓️ This Week at a Glance
+    <a href="/weekly" style="font-size:12px;opacity:0.8;">View →</a>
+  </div>
+  <div class="widget-body">
+    <div class="cards-grid" style="margin:0">
+      <div class="stat-card">
+        <div class="stat-icon bg-purple">🏫</div>
+        <div><div class="stat-value"><%= week.classesUpdated %>/<%= week.totalClasses %></div><div class="stat-label">Classes Updated This Week</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon bg-green">✅</div>
+        <div><div class="stat-value"><%= week.attendancePct === null ? '—' : week.attendancePct + '%' %></div><div class="stat-label">Attendance This Week</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Bottom Row -->
 <div class="dashboard-row col-2">
 

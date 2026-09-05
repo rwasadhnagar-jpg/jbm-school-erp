@@ -1,0 +1,26 @@
+<%- include('../partials/header', { title: 'Memo Log', activePage: 'performance' }) %>
+<div class="page-header"><div><h1>⚠️ Memo Log</h1><div class="breadcrumb">Teacher Assessment → Memos</div></div></div>
+
+<div class="toolbar">
+  <a href="/performance/memos/add" class="btn btn-purple">+ Issue Memo</a>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>Memos (<%= memos.length %>)</h3></div>
+  <table>
+    <thead><tr><th>Date</th><th>Teacher</th><th>Category</th><th>Description</th></tr></thead>
+    <tbody>
+      <% if (memos.length) { memos.forEach(m => { %>
+      <tr>
+        <td><%= new Date(m.memo_date).toLocaleDateString('en-IN') %></td>
+        <td><strong><%= m.first_name %> <%= m.last_name %></strong></td>
+        <td><span class="badge <%= m.category==='Discipline' ? 'badge-red' : (m.category==='Punctuality' ? 'badge-blue' : 'badge-green') %>"><%= m.category %></span></td>
+        <td><%= m.description || '—' %></td>
+      </tr>
+      <% }) } else { %>
+        <tr><td colspan="4" class="no-data">No memos issued yet</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

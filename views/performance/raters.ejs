@@ -1,0 +1,33 @@
+<%- include('../partials/header', { title: 'Rater Logins', activePage: 'performance' }) %>
+<div class="page-header"><div><h1>🔑 Rater Logins</h1><div class="breadcrumb">Teacher Assessment → Rater Logins</div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">
+    Principal, Vice Principal, and Incharge each get their own login here and score every staff member independently every month — none of them can see what the others entered. Only you (Chairman / admin) see all three scores side by side, plus the combined average, on the <a href="/performance/annual">Annual Summary</a>.
+  </div>
+</div>
+
+<div class="toolbar">
+  <a href="/performance/raters/add" class="btn btn-purple">+ Add Rater Login</a>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>Rater Logins (<%= raters.length %>)</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
+    <tbody>
+      <% if (raters.length) { raters.forEach((r,i) => { %>
+      <tr>
+        <td><%= i+1 %></td>
+        <td><strong><%= r.name %></strong></td>
+        <td><%= r.email %></td>
+        <td><span class="badge badge-blue"><%= r.role === 'vice_principal' ? 'Vice Principal' : (r.role.charAt(0).toUpperCase()+r.role.slice(1)) %></span></td>
+        <td><span class="badge <%= r.is_active ? 'badge-green' : 'badge-red' %>"><%= r.is_active ? 'Active' : 'Inactive' %></span></td>
+      </tr>
+      <% }) } else { %>
+        <tr><td colspan="5" class="no-data">No rater logins yet — add Principal, Vice Principal, and Incharge logins to start scoring.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

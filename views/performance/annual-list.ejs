@@ -1,0 +1,72 @@
+<%- include('../partials/header', { title: 'Annual Summary', activePage: 'performance' }) %>
+<div class="page-header"><div><h1>📈 Annual Summary</h1><div class="breadcrumb">Teacher Assessment → Annual Summary — <%= academicYear %></div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">Combined scores across Principal, Vice Principal, and Incharge. Set "Role &amp; Responsibility" for each teacher (a judgment call) — everything else calculates automatically. Total increment budget: <strong>Rs. <%= (weights.perf_budget_total||0).toLocaleString('en-IN') %></strong>.</div>
+</div>
+
+<% if (topPerformers.length || needsImprovement.length) { %>
+<div class="cards-grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px">
+  <div class="card">
+    <div class="card-header"><h3>🏆 Top Performers</h3></div>
+    <div class="card-body">
+      <% if (topPerformers.length) { topPerformers.forEach((sum,i) => { %>
+        <p><%= ['🥇','🥈','🥉'][i] || '•' %> <a href="/performance/annual/<%= sum.staff.id %>"><strong><%= sum.staff.first_name %> <%= sum.staff.last_name %></strong></a> — Weighted Score: <strong><%= sum.weighted %></strong></p>
+      <% }) } else { %><p class="no-data" style="padding:0">No scored teachers yet</p><% } %>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>⚠️ Needs Improvement</h3></div>
+    <div class="card-body">
+      <% if (needsImprovement.length) { needsImprovement.forEach(sum => { %>
+        <p>• <a href="/performance/annual/<%= sum.staff.id %>"><strong><%= sum.staff.first_name %> <%= sum.staff.last_name %></strong></a> — Weighted Score: <strong><%= sum.weighted %></strong></p>
+      <% }) } else { %><p class="no-data" style="padding:0">No scored teachers yet</p><% } %>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<div class="table-container" style="overflow-x:auto">
+  <div class="table-header"><h3>Teachers (<%= summaries.length %>)</h3></div>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th><th>Status</th><th>Months Logged</th><th>Annual Perf.</th><th>Years</th>
+        <th>Role &amp; Resp.</th><th>Loyalty</th><th>Behaviour</th><th>Weighted</th><th>Band</th><th>Increment (Rs.)</th><th>Action</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (summaries.length) { summaries.forEach(sum => { const s = sum.staff; const rank = rankMap.get(s.id); const isBottom = bottomSet.has(s.id); %>
+      <tr>
+        <td><strong><%= s.first_name %> <%= s.last_name %></strong>
+          <% if (rank) { %> <%= ['🥇','🥈','🥉'][rank-1] %><% } %>
+          <% if (isBottom) { %> ⚠️<% } %>
+        </td>
+        <td><span class="badge <%= s.date_of_leaving ? 'badge-red' : 'badge-green' %>"><%= s.date_of_leaving ? 'Left' : 'Active' %></span></td>
+        <td><%= sum.monthsLogged %></td>
+        <td><%= sum.annualPerf != null ? sum.annualPerf : '—' %></td>
+        <td><%= sum.years != null ? Math.round(sum.years*10)/10 : '—' %></td>
+        <td>
+          <form method="POST" action="/performance/annual/<%= s.id %>/role-resp" style="display:flex;gap:4px">
+            <input type="number" step="0.1" min="0" max="10" name="role_responsibility_score" class="form-control form-control-sm" style="width:60px" value="<%= sum.roleResp != null ? sum.roleResp : '' %>">
+            <button type="submit" class="btn btn-outline-purple btn-xs">Save</button>
+          </form>
+        </td>
+        <td><%= sum.loyalty != null ? sum.loyalty : '—' %></td>
+        <td><%= sum.behaviour != null ? sum.behaviour : '—' %></td>
+        <td><strong><%= sum.weighted != null ? sum.weighted : '—' %></strong></td>
+        <td><% if (sum.band) { %><span class="badge <%= sum.band==='Top Performer' ? 'badge-green' : (sum.band==='Average / Consider' ? 'badge-blue' : 'badge-red') %>"><%= sum.band %></span><% } else { %>—<% } %></td>
+        <td><%= sum.increment ? sum.increment.toLocaleString('en-IN') : '—' %></td>
+        <td style="min-width:200px;font-size:12px"><%= sum.action || '—' %></td>
+        <td>
+          <a href="/performance/annual/<%= s.id %>" class="btn btn-outline-purple btn-xs">View</a>
+          <a href="/performance/annual/<%= s.id %>/pdf" class="btn btn-outline-purple btn-xs">PDF</a>
+        </td>
+      </tr>
+      <% }) } else { %>
+        <tr><td colspan="13" class="no-data">No teaching staff found</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

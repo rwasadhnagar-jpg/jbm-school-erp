@@ -1,0 +1,72 @@
+<%- include('../partials/header', { title: 'Performance Weights & Settings', activePage: 'performance' }) %>
+<div class="page-header"><div><h1>⚖️ Performance Weights &amp; Settings</h1><div class="breadcrumb">Teacher Assessment → Weights &amp; Settings</div></div></div>
+
+<form method="POST" action="/performance/settings">
+  <div class="cards-grid" style="grid-template-columns:1fr 1fr;">
+
+    <div class="card">
+      <div class="card-header"><h3>Annual Increment Weights <small id="ann-total" style="font-weight:normal"></small></h3></div>
+      <div class="card-body">
+        <div class="form-group"><label>Performance (Annual)</label><input type="number" step="0.01" min="0" max="1" class="form-control ann-w" name="perf_w_performance_annual" value="<%= weights.perf_w_performance_annual %>"></div>
+        <div class="form-group"><label>Loyalty / Years of Service</label><input type="number" step="0.01" min="0" max="1" class="form-control ann-w" name="perf_w_loyalty" value="<%= weights.perf_w_loyalty %>"></div>
+        <div class="form-group"><label>Role &amp; Responsibility</label><input type="number" step="0.01" min="0" max="1" class="form-control ann-w" name="perf_w_role_resp" value="<%= weights.perf_w_role_resp %>"></div>
+        <div class="form-group"><label>Behaviour, Teamwork &amp; Extra Contribution</label><input type="number" step="0.01" min="0" max="1" class="form-control ann-w" name="perf_w_behaviour_annual" value="<%= weights.perf_w_behaviour_annual %>"></div>
+        <div style="font-size:12px;color:#777;margin-top:6px">Must sum to 1.00 (100%)</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>Budget &amp; Thresholds</h3></div>
+      <div class="card-body">
+        <div class="form-group"><label>Total increment budget available this year (Rs.)</label><input type="number" step="1" min="0" class="form-control" name="perf_budget_total" value="<%= weights.perf_budget_total %>"></div>
+        <div class="form-group"><label>Minimum Weighted Score for "Top Performer"</label><input type="number" step="0.1" min="0" max="10" class="form-control" name="perf_threshold_top" value="<%= weights.perf_threshold_top %>"></div>
+        <div class="form-group"><label>Minimum Weighted Score for "Average / Consider"</label><input type="number" step="0.1" min="0" max="10" class="form-control" name="perf_threshold_avg" value="<%= weights.perf_threshold_avg %>"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-header"><h3>Month Score Composition <small id="month-total" style="font-weight:normal"></small></h3></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Attendance &amp; Punctuality</label><input type="number" step="0.01" min="0" max="1" class="form-control month-w" name="perf_w_attendance" value="<%= weights.perf_w_attendance %>"></div>
+        <div class="form-group"><label>Syllabus Pace Adherence</label><input type="number" step="0.01" min="0" max="1" class="form-control month-w" name="perf_w_syllabus" value="<%= weights.perf_w_syllabus %>"></div>
+        <div class="form-group"><label>Classroom Management / Discipline</label><input type="number" step="0.01" min="0" max="1" class="form-control month-w" name="perf_w_classroom" value="<%= weights.perf_w_classroom %>"></div>
+        <div class="form-group"><label>Homework / Copy Correction</label><input type="number" step="0.01" min="0" max="1" class="form-control month-w" name="perf_w_homework" value="<%= weights.perf_w_homework %>"></div>
+        <div class="form-group"><label>Student Outcomes / Test Trend <small style="font-weight:normal;color:#777">(auto from marks)</small></label><input type="number" step="0.01" min="0" max="1" class="form-control month-w" name="perf_w_outcomes" value="<%= weights.perf_w_outcomes %>"></div>
+        <div class="form-group"><label>Parent Communication &amp; Engagement</label><input type="number" step="0.01" min="0" max="1" class="form-control month-w" name="perf_w_parentcomm" value="<%= weights.perf_w_parentcomm %>"></div>
+        <div class="form-group"><label>Administrative Compliance</label><input type="number" step="0.01" min="0" max="1" class="form-control month-w" name="perf_w_admincompliance" value="<%= weights.perf_w_admincompliance %>"></div>
+        <div class="form-group"><label>Co-curricular &amp; Extra Contribution</label><input type="number" step="0.01" min="0" max="1" class="form-control month-w" name="perf_w_cocurricular" value="<%= weights.perf_w_cocurricular %>"></div>
+        <div class="form-group"><label>Professional Development / Innovation</label><input type="number" step="0.01" min="0" max="1" class="form-control month-w" name="perf_w_profdev" value="<%= weights.perf_w_profdev %>"></div>
+        <div class="form-group"><label>Behaviour &amp; Teamwork</label><input type="number" step="0.01" min="0" max="1" class="form-control month-w" name="perf_w_behaviour_month" value="<%= weights.perf_w_behaviour_month %>"></div>
+        <div class="form-group"><label>Overall Holistic Score</label><input type="number" step="0.01" min="0" max="1" class="form-control month-w" name="perf_w_holistic" value="<%= weights.perf_w_holistic %>"></div>
+      </div>
+      <div style="font-size:12px;color:#777;margin-top:6px">Must sum to 1.00 (100%). A late arrival / parent complaint / discipline issue count also applies a small automatic penalty (capped at 2 points) on top of this.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;">
+    <button type="submit" class="btn btn-purple">💾 Save Weights &amp; Settings</button>
+    <a href="/performance" class="btn btn-outline-purple" style="margin-left:8px;">Cancel</a>
+  </div>
+</form>
+
+<script>
+function wireTotal(selector, outId) {
+  const els = document.querySelectorAll(selector);
+  const out = document.getElementById(outId);
+  function update() {
+    let total = 0;
+    els.forEach(el => { total += parseFloat(el.value) || 0; });
+    out.textContent = `(total: ${total.toFixed(2)}${Math.abs(total-1)>0.005 ? ' ⚠️ should be 1.00' : ' ✓'})`;
+    out.style.color = Math.abs(total-1)>0.005 ? '#dc3545' : '#16a34a';
+  }
+  els.forEach(el => el.addEventListener('input', update));
+  update();
+}
+wireTotal('.ann-w', 'ann-total');
+wireTotal('.month-w', 'month-total');
+</script>
+
+<%- include('../partials/footer') %>

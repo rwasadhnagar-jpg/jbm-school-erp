@@ -33,7 +33,7 @@
         <td><%= s.designation||'—' %></td>
         <td><%= s.phone||'—' %></td>
         <td><span class="badge badge-green">Active</span></td>
-        <td><a href="#" class="btn btn-outline-purple btn-xs">✏️ Edit</a></td>
+        <td><a href="/teachers/<%= s.id %>/edit" class="btn btn-outline-purple btn-xs">✏️ Edit</a></td>
       </tr>
       <% }) } else { %>
         <tr><td colspan="8" class="no-data">No staff found</td></tr>

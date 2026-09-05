@@ -5,6 +5,7 @@ const db = require('../db');
 router.get('/', async (req, res) => {
   if (req.session.user && req.session.user.role === 'parent') return res.redirect('/portal/dashboard');
   if (req.session.user && req.session.user.role === 'student') return res.redirect('/portal/dashboard');
+  if (req.session.user && ['principal', 'vice_principal', 'incharge'].includes(req.session.user.role)) return res.redirect('/performance');
   try {
     const [[{ totalStudents }]] = await db.query('SELECT COUNT(*) as totalStudents FROM students WHERE status = "active"');
     const [[{ totalStaff }]] = await db.query('SELECT COUNT(*) as totalStaff FROM staff WHERE is_active = 1');
@@ -38,6 +39,21 @@ router.get('/', async (req, res) => {
       'SELECT * FROM notices ORDER BY created_at DESC LIMIT 5'
     );
 
+    // This-week snapshot (Monday through today)
+    const now = new Date();
+    const dow = now.getDay();
+    const monday = new Date(now); monday.setDate(now.getDate() + (dow === 0 ? -6 : 1 - dow));
+    const mondayStr = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
+    const [[weekAttRow]] = await db.query(
+      'SELECT SUM(status="Present") AS present, COUNT(*) AS total FROM attendance_student WHERE date BETWEEN ? AND ?',
+      [mondayStr, today]
+    );
+    const weekTotal = Number(weekAttRow.total) || 0;
+    const weekAttendancePct = weekTotal ? Math.round((Number(weekAttRow.present) || 0) / weekTotal * 100) : null;
+    const [[weekUpdatesRow]] = await db.query(
+      'SELECT COUNT(*) AS cnt FROM weekly_updates WHERE week_start_date=?', [mondayStr]
+    ).catch(() => [[{ cnt: 0 }]]);
+
     res.render('dashboard', {
       title: 'Dashboard',
       activePage: 'dashboard',
@@ -45,6 +61,7 @@ router.get('/', async (req, res) => {
       recentStudents,
       pendingLeaves,
       recentNotices,
+      week: { attendancePct: weekAttendancePct, classesUpdated: weekUpdatesRow.cnt, totalClasses },
       layout: 'layout'
     });
   } catch (err) {
@@ -56,6 +73,7 @@ router.get('/', async (req, res) => {
       recentStudents: [],
       pendingLeaves: [],
       recentNotices: [],
+      week: { attendancePct: null, classesUpdated: 0, totalClasses: 0 },
       layout: 'layout'
     });
   }

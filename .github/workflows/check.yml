@@ -10,8 +10,9 @@ jobs:
         run: |
           sudo apt-get install -y sshpass -q
           sshpass -e ssh -o StrictHostKeyChecking=no -p 65002 u502587017@191.101.230.15 "
-            echo '=== login shell npm/node resolution ===' && bash --login -c 'which npm; which node; npm --version' 2>&1
-            echo '=== nodejs/.env (current live env) ===' && cat ~/domains/erp.jbmpschool.in/nodejs/.env 2>/dev/null
-            echo '=== nodejs/package.json scripts ===' && grep -A2 scripts ~/domains/erp.jbmpschool.in/nodejs/package.json 2>/dev/null
-            echo '=== nodejs/server-err.log (tail) ===' && tail -30 ~/domains/erp.jbmpschool.in/nodejs/server-err.log 2>/dev/null
+            echo '=== erp.jbmpschool.in node process ===' && ps aux | grep 'erp.jbmpschool.in/nodejs' | grep -v grep || echo 'NOT RUNNING'
+            echo '=== live app dir (nodejs/) listing ===' && ls -la ~/domains/erp.jbmpschool.in/nodejs/ | head -20
+            echo '=== live .env exists? ===' && ls ~/domains/erp.jbmpschool.in/nodejs/.env 2>/dev/null || echo 'MISSING .env!'
+            echo '=== live server-err.log (tail) ===' && tail -30 ~/domains/erp.jbmpschool.in/nodejs/server-err.log 2>/dev/null
+            echo '=== local curl to app port 8080 ===' && curl -s -o /dev/null -w 'status: %{http_code}\n' http://127.0.0.1:8080/login
           "

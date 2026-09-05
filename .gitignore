@@ -1,6 +1,9 @@
 node_modules/
 .env
+.env.test
 backups/
+mysql-portable/
+test-server.log
 public/uploads/
 server.log
 server-err.log

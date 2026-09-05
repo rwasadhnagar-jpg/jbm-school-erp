@@ -1,0 +1,95 @@
+<%- include('../partials/header', { title: 'This Week', activePage: 'weekly' }) %>
+<div class="page-header"><div><h1>🗓️ This Week</h1><div class="breadcrumb"><%= weekStart %> to <%= weekEnd %></div></div></div>
+
+<% if (isAdmin) { %>
+
+<div class="cards-grid">
+  <div class="stat-card">
+    <div class="stat-icon bg-purple">🏫</div>
+    <div><div class="stat-value"><%= submittedCount %>/<%= totalClasses %></div><div class="stat-label">Classes Updated This Week</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-green">✅</div>
+    <div><div class="stat-value"><%= schoolAttendancePct === null ? '—' : schoolAttendancePct + '%' %></div><div class="stat-label">School Attendance This Week</div></div>
+  </div>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>Class Updates</h3></div>
+  <table>
+    <thead><tr><th>Class</th><th>Class Teacher</th><th>This Week's Note</th><th>Last Updated</th></tr></thead>
+    <tbody>
+      <% classes.forEach(c => { %>
+      <tr>
+        <td><%= c.class_name %> - <%= c.section %></td>
+        <td><%= c.teacher_first ? (c.teacher_first + ' ' + (c.teacher_last||'')) : '—' %></td>
+        <td><%= c.note || '—' %></td>
+        <td><%= c.updated_at ? moment(c.updated_at).format('DD MMM, h:mm A') : '—' %></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<% } else { %>
+
+<% if (!myClasses.length) { %>
+  <div class="no-data">You're not set as the class teacher for any class, so there's nothing to update here.</div>
+<% } else { %>
+<% myClasses.forEach(c => { %>
+<div class="table-container" style="margin-bottom:16px">
+  <div class="table-header"><h3><%= c.class_name %> - <%= c.section %></h3></div>
+  <div style="padding:14px 16px">
+    <div class="cards-grid" style="margin-bottom:14px">
+      <div class="stat-card">
+        <div class="stat-icon bg-green">✅</div>
+        <div><div class="stat-value"><%= c.attendance.pct === null ? '—' : c.attendance.pct + '%' %></div><div class="stat-label">Attendance This Week (<%= c.attendance.present %>/<%= c.attendance.total %>)</div></div>
+      </div>
+    </div>
+    <form method="POST" action="/weekly/note">
+      <input type="hidden" name="class_id" value="<%= c.id %>">
+      <input type="hidden" name="week_start_date" value="<%= weekStart %>">
+      <label style="font-size:13px;font-weight:600;color:#555">This Week's Class Update</label>
+      <textarea name="note" class="form-control" rows="3" placeholder="e.g. Covered Chapter 4, class test on Friday, 3 students absent due to fever..." style="margin:6px 0"><%= c.note || '' %></textarea>
+      <div class="form-actions"><button type="submit" class="btn btn-purple btn-sm">💾 Save This Week's Update</button></div>
+    </form>
+  </div>
+</div>
+<% }) %>
+<% } %>
+
+<% if (marksThisWeek.length) { %>
+<div class="dashboard-widget">
+  <div class="widget-header">📊 Marks Entered This Week</div>
+  <div class="widget-body" style="padding:0">
+    <table>
+      <thead><tr><th>Subject</th><th>Class</th><th>Entries</th></tr></thead>
+      <tbody>
+        <% marksThisWeek.forEach(m => { %>
+          <tr><td><%= m.subject_name %></td><td><%= m.class_name %> - <%= m.section %></td><td><%= m.cnt %></td></tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<% } %>
+
+<% } %>
+
+<div class="dashboard-widget" style="margin-top:16px">
+  <div class="widget-header">📢 Notices This Week</div>
+  <div class="widget-body">
+    <% if (notices.length) { %>
+      <% notices.forEach(n => { %>
+        <div style="padding:8px 0;border-bottom:1px solid #f0f0f0">
+          <div style="font-weight:600;font-size:13px"><%= n.title %></div>
+          <div style="font-size:11px;color:#888"><%= n.for_type %> &bull; <%= n.publish_date ? moment(n.publish_date).format('DD MMM YYYY') : moment(n.created_at).format('DD MMM YYYY') %></div>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <div class="no-data">No notices this week</div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
