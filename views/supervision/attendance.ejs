@@ -1,0 +1,158 @@
+<%- include('../partials/header', { title: 'Weekly Staff Attendance', activePage: 'supervision' }) %>
+<div class="page-header"><div><h1>📅 Weekly Staff Attendance</h1><div class="breadcrumb">Academic Supervision → Attendance</div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">
+    <% if (role === 'incharge') { %>
+    Tick who's under your supervision, then enter their working days, leaves taken, late comings, and how many of those leaves were clubbed with a holiday. This feeds the Attendance % and Teacher Overview shown automatically elsewhere.
+    <% } else { %>
+    Assign each staff member to a wing, and once a week enter their working days, leaves taken, late comings, and how many of those leaves were clubbed with a holiday (taken right before/after it, or a "bridge" day between two holidays). This feeds the Attendance % and Teacher Overview shown automatically elsewhere.
+    <% } %>
+  </div>
+</div>
+
+<% if (canAssignWing) { %>
+<div class="form-card" style="margin-bottom:16px">
+  <div class="form-card-header">➕ Add New Staff</div>
+  <div class="form-card-body">
+    <form method="POST" action="/supervision/staff/quick-add" class="form-grid" style="align-items:end">
+      <input type="hidden" name="week" value="<%= weekStart %>">
+      <div class="form-group"><label>First Name <span class="required">*</span></label><input type="text" name="first_name" class="form-control" required></div>
+      <div class="form-group"><label>Last Name</label><input type="text" name="last_name" class="form-control"></div>
+      <div class="form-group">
+        <label>Staff Type</label>
+        <select name="staff_type" class="form-control">
+          <option value="Teaching">Teaching</option>
+          <option value="Non-Teaching">Non-Teaching</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Wing</label>
+        <select name="wing" class="form-control">
+          <option value="">— unassigned —</option>
+          <% Object.keys(WINGS).forEach(function(w) { %>
+          <option value="<%= w %>"><%= WINGS[w].label %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="form-group"><button type="submit" class="btn btn-purple">Add Staff</button></div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<div class="toolbar" style="flex-wrap:wrap">
+  <% if (canAssignWing) { %>
+  <form method="GET" action="/supervision/attendance" class="search-bar">
+    <input type="hidden" name="week" value="<%= weekStart %>">
+    <select name="wing" class="form-control form-control-sm" onchange="this.form.submit()" style="width:220px">
+      <option value="">All staff</option>
+      <% Object.keys(WINGS).forEach(function(w) { %>
+      <option value="<%= w %>" <%= w === wingFilter ? 'selected' : '' %>><%= WINGS[w].label %></option>
+      <% }) %>
+    </select>
+  </form>
+  <% } %>
+  <a href="/supervision/attendance?week=<%= prevWeek %><%= wingFilter ? '&wing=' + wingFilter : '' %>" class="btn btn-outline-purple btn-sm">← Previous Week</a>
+  <span style="align-self:center;font-size:13px;color:#555;padding:0 6px">Week of <%= weekStart %></span>
+  <a href="/supervision/attendance?week=<%= nextWeek %><%= wingFilter ? '&wing=' + wingFilter : '' %>" class="btn btn-outline-purple btn-sm">Next Week →</a>
+</div>
+
+<form method="POST" action="/supervision/attendance">
+  <input type="hidden" name="week_start_date" value="<%= weekStart %>">
+  <% if (wingFilter) { %><input type="hidden" name="wing" value="<%= wingFilter %>"><% } %>
+  <div class="table-container" style="overflow-x:auto">
+    <div class="table-header"><h3>Staff (<%= staffList.length %>)</h3></div>
+    <table>
+      <thead>
+        <tr>
+          <% if (role === 'incharge') { %><th style="width:50px">Mine</th><% } %>
+          <th style="min-width:160px">Name</th>
+          <% if (canAssignWing) { %><th style="width:200px">Wing</th><% } %>
+          <th style="width:110px">Working Days</th>
+          <th style="width:100px">Leaves Taken</th>
+          <th style="width:100px">Late Comings</th>
+          <th style="width:140px">Clubbed with Holiday</th>
+          <th style="width:90px">Punctuality</th>
+          <th style="width:90px">Dress Code</th>
+          <th style="width:90px">Overall Conduct</th>
+          <th style="width:90px">Lesson Prep</th>
+        </tr>
+      </thead>
+      <tbody id="staffRows">
+        <% if (!staffList.length) { %>
+        <tr><td colspan="11" class="no-data">No staff match this filter.</td></tr>
+        <% } %>
+        <% staffList.forEach(function(s) { const ex = s.existing || {}; const isMine = role === 'incharge' && s.wing === myOwnWing; %>
+        <tr class="staff-row" data-checked="<%= (role !== 'incharge' || isMine) ? '1' : '0' %>">
+          <% if (role === 'incharge') { %>
+          <td style="text-align:center">
+            <input type="checkbox" class="mine-check" name="include_staff" value="<%= s.id %>" <%= isMine ? 'checked' : '' %> style="width:18px;height:18px">
+          </td>
+          <% } %>
+          <td>
+            <%= s.first_name %> <%= s.last_name || '' %>
+            <% if (role === 'incharge' && s.wing && !isMine) { %>
+            <div style="font-size:10px;color:#a15c00">currently: <%= WINGS[s.wing] ? WINGS[s.wing].label : s.wing %></div>
+            <% } %>
+          </td>
+          <% if (canAssignWing) { %>
+          <td>
+            <select name="staff_wing[s<%= s.id %>]" class="form-control form-control-sm">
+              <option value="">— unassigned —</option>
+              <% Object.keys(WINGS).forEach(function(w) { %>
+              <option value="<%= w %>" <%= s.wing === w ? 'selected' : '' %>><%= WINGS[w].label %></option>
+              <% }) %>
+            </select>
+          </td>
+          <% } %>
+          <td><input type="number" min="0" max="7" class="form-control form-control-sm attend-field" name="working_days[s<%= s.id %>]" value="<%= ex.working_days != null ? ex.working_days : '' %>"></td>
+          <td><input type="number" min="0" max="7" class="form-control form-control-sm attend-field" name="leaves_taken[s<%= s.id %>]" value="<%= ex.leaves_taken != null ? ex.leaves_taken : 0 %>"></td>
+          <td><input type="number" min="0" max="7" class="form-control form-control-sm attend-field" name="late_arrivals[s<%= s.id %>]" value="<%= ex.late_arrivals != null ? ex.late_arrivals : 0 %>"></td>
+          <td><input type="number" min="0" max="7" class="form-control form-control-sm attend-field" name="leaves_clubbed[s<%= s.id %>]" value="<%= ex.leaves_clubbed_with_holiday != null ? ex.leaves_clubbed_with_holiday : 0 %>"></td>
+          <td>
+            <select class="form-control form-control-sm attend-field" name="punctuality_rating[s<%= s.id %>]">
+              <option value="">—</option>
+              <% [5,4,3,2,1].forEach(function(v) { %><option value="<%= v %>" <%= ex.punctuality_rating == v ? 'selected' : '' %>><%= v %></option><% }) %>
+            </select>
+          </td>
+          <td>
+            <select class="form-control form-control-sm attend-field" name="dress_code_rating[s<%= s.id %>]">
+              <option value="">—</option>
+              <% [5,4,3,2,1].forEach(function(v) { %><option value="<%= v %>" <%= ex.dress_code_rating == v ? 'selected' : '' %>><%= v %></option><% }) %>
+            </select>
+          </td>
+          <td>
+            <select class="form-control form-control-sm attend-field" name="overall_conduct_rating[s<%= s.id %>]">
+              <option value="">—</option>
+              <% [5,4,3,2,1].forEach(function(v) { %><option value="<%= v %>" <%= ex.overall_conduct_rating == v ? 'selected' : '' %>><%= v %></option><% }) %>
+            </select>
+          </td>
+          <td>
+            <select class="form-control form-control-sm attend-field" name="lesson_prep_rating[s<%= s.id %>]">
+              <option value="">—</option>
+              <% [5,4,3,2,1].forEach(function(v) { %><option value="<%= v %>" <%= ex.lesson_prep_rating == v ? 'selected' : '' %>><%= v %></option><% }) %>
+            </select>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <div class="form-actions"><button type="submit" class="btn btn-purple">💾 Save Weekly Attendance</button></div>
+  </div>
+</form>
+
+<script>
+  // Grey out attendance fields for staff not ticked as "mine" — purely visual, the server only
+  // ever saves attendance for staff actually ticked, so this just keeps the screen honest.
+  document.querySelectorAll('.staff-row').forEach(function (row) {
+    var checkbox = row.querySelector('.mine-check');
+    function sync() {
+      var on = checkbox ? checkbox.checked : row.getAttribute('data-checked') === '1';
+      row.querySelectorAll('.attend-field').forEach(function (f) { f.disabled = !on; f.style.opacity = on ? '1' : '0.4'; });
+    }
+    if (checkbox) checkbox.addEventListener('change', sync);
+    sync();
+  });
+</script>
+<%- include('../partials/footer') %>

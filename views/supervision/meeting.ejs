@@ -1,0 +1,46 @@
+<%- include('../partials/header', { title: 'Weekly Academic Meeting', activePage: 'supervision' }) %>
+<div class="page-header"><div><h1>🗒️ Weekly Academic Meeting</h1><div class="breadcrumb">Academic Supervision → Meeting Minutes</div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">Fixed 45-minute meeting with the wing In-charges. Agenda: syllabus position, problems, decisions. One page, same day and time every week.</div>
+</div>
+
+<div class="toolbar">
+  <a href="/supervision/meeting?week=<%= prevWeek %>" class="btn btn-outline-purple btn-sm">← Previous Week</a>
+  <span style="align-self:center;font-size:13px;color:#555;padding:0 6px">Week of <%= weekStart %></span>
+  <a href="/supervision/meeting?week=<%= nextWeek %>" class="btn btn-outline-purple btn-sm">Next Week →</a>
+</div>
+
+<form method="POST" action="/supervision/meeting">
+  <input type="hidden" name="week_start_date" value="<%= weekStart %>">
+  <div class="form-card">
+    <div class="form-card-header">✅ Wings Represented</div>
+    <div class="form-card-body">
+      <div class="form-grid">
+        <% Object.keys(WINGS).forEach(function(w) { %>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400">
+          <input type="checkbox" name="attendee_wings" value="<%= w %>" <%= attendeeWings.includes(w) ? 'checked' : '' %>>
+          <%= WINGS[w].label %>
+        </label>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-card" style="margin-top:16px">
+    <div class="form-card-header">📋 Agenda</div>
+    <div class="form-card-body">
+      <textarea name="agenda" class="form-control" rows="4" placeholder="Syllabus position, problems raised by each wing..."><%= meeting.agenda || '' %></textarea>
+    </div>
+  </div>
+
+  <div class="form-card" style="margin-top:16px">
+    <div class="form-card-header">✅ Decisions</div>
+    <div class="form-card-body">
+      <textarea name="decisions" class="form-control" rows="4" placeholder="Decisions taken this week..."><%= meeting.decisions || '' %></textarea>
+    </div>
+  </div>
+
+  <div class="form-card"><div class="form-actions"><button type="submit" class="btn btn-purple">💾 Save Minutes</button></div></div>
+</form>
+<%- include('../partials/footer') %>

@@ -1,0 +1,60 @@
+<%- include('../partials/header', { title: 'Cross-Wing Teachers', activePage: 'supervision' }) %>
+<div class="page-header"><div><h1>🔀 Cross-Wing Teachers</h1><div class="breadcrumb">Academic Supervision → Cross-Wing Teachers</div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">
+    Most teachers belong to one wing only (their primary assignment, set on the <a href="/supervision/attendance">Weekly Attendance</a> screen). Some subject specialists also teach a few periods into a second wing — add them here so that wing's Incharge can see and observe/score them too, without changing their primary wing.
+  </div>
+</div>
+
+<div class="form-card">
+  <div class="form-card-header">➕ Add Cross-Wing Membership</div>
+  <div class="form-card-body">
+    <form method="POST" action="/supervision/cross-wing/add" class="form-grid">
+      <div class="form-group">
+        <label>Teacher <span class="required">*</span></label>
+        <select name="staff_id" class="form-control" required>
+          <option value="">— select —</option>
+          <% staffList.forEach(function(s) { %>
+          <option value="<%= s.id %>"><%= s.first_name %> <%= s.last_name || '' %> <%= s.wing ? '(' + (WINGS[s.wing] ? WINGS[s.wing].label : s.wing) + ')' : '(no primary wing yet)' %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Additional Wing <span class="required">*</span></label>
+        <select name="wing" class="form-control" required>
+          <option value="">— select —</option>
+          <% Object.keys(WINGS).forEach(function(w) { %>
+          <option value="<%= w %>"><%= WINGS[w].label %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="form-group" style="align-self:end">
+        <button type="submit" class="btn btn-purple">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="table-container" style="margin-top:16px">
+  <div class="table-header"><h3>Current Cross-Wing Memberships (<%= memberships.length %>)</h3></div>
+  <table>
+    <thead><tr><th>Teacher</th><th>Additional Wing</th><th style="width:100px"></th></tr></thead>
+    <tbody>
+      <% if (memberships.length) { memberships.forEach(function(m) { %>
+      <tr>
+        <td><%= m.first_name %> <%= m.last_name %></td>
+        <td><span class="badge badge-blue"><%= WINGS[m.wing] ? WINGS[m.wing].label : m.wing %></span></td>
+        <td>
+          <form method="POST" action="/supervision/cross-wing/<%= m.id %>/remove" onsubmit="return confirm('Remove this cross-wing membership?')">
+            <button type="submit" class="btn btn-outline-purple btn-sm">Remove</button>
+          </form>
+        </td>
+      </tr>
+      <% }) } else { %>
+        <tr><td colspan="3" class="no-data">No cross-wing teachers yet</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

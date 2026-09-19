@@ -78,6 +78,7 @@ const portalRoutes = require('./routes/student');
 const remarksRoutes = require('./routes/remarks');
 const weeklyRoutes = require('./routes/weekly');
 const performanceRoutes = require('./routes/performance');
+const supervisionRoutes = require('./routes/supervision');
 const notifications = require('./routes/notifications');
 
 app.use('/', authRoutes);
@@ -96,6 +97,7 @@ app.use('/notices', requireRole('admin'), noticeRoutes);
 app.use('/remarks', requireRole('admin', 'teacher'), remarksRoutes);
 app.use('/weekly', requireRole('admin', 'teacher'), weeklyRoutes);
 app.use('/performance', requireRole('admin', 'teacher', 'principal', 'vice_principal', 'incharge'), performanceRoutes);
+app.use('/supervision', requireRole('admin', 'principal', 'vice_principal', 'incharge'), supervisionRoutes);
 app.use('/configuration', requireRole('admin'), configRoutes);
 app.use('/certificates', requireRole('admin'), certificateRoutes);
 app.use('/sms', requireRole('admin'), smsRoutes);
@@ -216,28 +218,32 @@ async function runWeeklyUpdateReminder() {
 }
 cron.schedule('0 8 * * 1', runWeeklyUpdateReminder, { timezone: 'Asia/Kolkata' });
 
-// 3rd of each month, 9 AM: remind each rater (Principal/Vice Principal/Incharge) of staff
-// still missing last month's performance review from them
+// 3rd of each month, 9 AM: remind each wing Incharge of staff in their own wing still missing
+// last month's performance review (only the Incharge enters these now — Principal/Admin just
+// review/edit, so they aren't nagged for "missing" entries the same way).
 async function runPerformanceReviewReminder() {
   try {
     const now = new Date();
     const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const prevMonthStr = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}-01`;
-    const raterRoles = { principal: 'Principal', vice_principal: 'Vice Principal', incharge: 'Incharge' };
-    const [[{ cnt: totalStaff }]] = await db.query("SELECT COUNT(*) cnt FROM staff WHERE staff_type='Teaching' AND is_active=1");
-    if (Number(totalStaff) === 0) return;
-    for (const [role, raterLabel] of Object.entries(raterRoles)) {
+    const [incharges] = await db.query("SELECT id, wing FROM users WHERE role='incharge' AND is_active=1 AND wing IS NOT NULL");
+    for (const inc of incharges) {
+      const [[{ cnt: totalStaff }]] = await db.query(
+        "SELECT COUNT(*) cnt FROM staff WHERE staff_type='Teaching' AND is_active=1 AND wing=?", [inc.wing]
+      );
+      if (Number(totalStaff) === 0) continue;
       const [[row]] = await db.query(
-        `SELECT COUNT(DISTINCT staff_id) cnt FROM performance_monthly_reviews
-         WHERE month_date=? AND rater=? AND (syllabus_pace IS NOT NULL OR classroom_mgmt IS NOT NULL
-           OR homework_correction IS NOT NULL OR parent_comm IS NOT NULL OR admin_compliance IS NOT NULL
-           OR cocurricular IS NOT NULL OR professional_dev IS NOT NULL OR behaviour_teamwork IS NOT NULL
-           OR overall_holistic IS NOT NULL)`,
-        [prevMonthStr, raterLabel]
+        `SELECT COUNT(DISTINCT r.staff_id) cnt FROM performance_monthly_reviews r
+         JOIN staff s ON s.id = r.staff_id
+         WHERE r.month_date=? AND s.wing=? AND (r.syllabus_pace IS NOT NULL OR r.classroom_mgmt IS NOT NULL
+           OR r.homework_correction IS NOT NULL OR r.parent_comm IS NOT NULL OR r.admin_compliance IS NOT NULL
+           OR r.cocurricular IS NOT NULL OR r.professional_dev IS NOT NULL OR r.behaviour_teamwork IS NOT NULL
+           OR r.overall_holistic IS NOT NULL)`,
+        [prevMonthStr, inc.wing]
       );
       const missing = Number(totalStaff) - Number(row.cnt);
       if (missing > 0) {
-        await notifications.sendPushToRole(role, {
+        await notifications.sendPushToUser(inc.id, {
           title: 'Monthly Teacher Reviews Due',
           body: `${missing} teacher(s) still need last month's review from you.`
         });

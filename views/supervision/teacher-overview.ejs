@@ -1,0 +1,58 @@
+<%- include('../partials/header', { title: 'Teacher Overview', activePage: 'supervision' }) %>
+<div class="page-header"><div><h1>📊 Teacher Overview</h1><div class="breadcrumb">Academic Supervision → Teacher Overview</div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">Every teacher, one row: average Class Observation score (across all raters, all 10 points) for the selected month and for the year to date, alongside that month's attendance — working days, leaves, late comings, and leaves clubbed with a holiday.</div>
+</div>
+
+<div class="toolbar">
+  <form method="GET" action="/supervision/teacher-overview" class="search-bar">
+    <input type="month" name="month" class="form-control form-control-sm" value="<%= month %>" onchange="this.form.submit()" style="width:170px">
+  </form>
+</div>
+
+<div class="table-container" style="overflow-x:auto">
+  <div class="table-header"><h3>Staff (<%= staffList.length %>)</h3></div>
+  <table>
+    <thead>
+      <tr>
+        <th style="min-width:150px">Teacher</th>
+        <th style="width:110px">Avg Score<br>(This Month)</th>
+        <th style="width:110px">Avg Score<br>(Year to Date)</th>
+        <th style="width:90px">Observations</th>
+        <th style="width:90px">Working Days</th>
+        <th style="width:80px">Leaves</th>
+        <th style="width:90px">Late Comings</th>
+        <th style="width:110px">Clubbed w/ Holiday</th>
+        <th style="width:90px">Attendance %</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (!staffList.length) { %>
+      <tr><td colspan="9" class="no-data">No teaching staff found.</td></tr>
+      <% } %>
+      <% staffList.forEach(function(s) { const o = s.obs; const a = s.attendance; %>
+      <tr>
+        <td><%= s.first_name %> <%= s.last_name || '' %><% if (s.wing && WINGS[s.wing]) { %><div style="font-size:10px;color:#888"><%= WINGS[s.wing].label %></div><% } %></td>
+        <td>
+          <% if (o.monthAvg != null) { %>
+          <span class="badge <%= o.monthAvg >= 4 ? 'badge-green' : (o.monthAvg >= 3 ? 'badge-blue' : 'badge-red') %>"><%= o.monthAvg %> / 5</span>
+          <% } else { %>—<% } %>
+        </td>
+        <td><%= o.ytdAvg != null ? (o.ytdAvg + ' / 5') : '—' %></td>
+        <td style="text-align:center"><%= o.monthObservationCount %></td>
+        <td style="text-align:center"><%= a && a.totalWorking != null ? a.totalWorking : '—' %></td>
+        <td style="text-align:center"><%= a ? a.totalLeaves : '—' %></td>
+        <td style="text-align:center"><%= a ? a.totalLate : '—' %></td>
+        <td style="text-align:center">
+          <% if (a && a.totalClubbed > 0) { %>
+          <span class="badge badge-orange">⚠️ <%= a.totalClubbed %></span>
+          <% } else { %><%= a ? a.totalClubbed : '—' %><% } %>
+        </td>
+        <td style="text-align:center"><%= a && a.attendancePct != null ? a.attendancePct + '%' : '—' %></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

@@ -19,6 +19,18 @@ function suggestEmail(first, last, id) {
   return `${clean(first)}.${clean(last)}${id}@jbmpschool.local`;
 }
 
+// Runs whenever a staff member is marked as having left (date_of_leaving set), from either this
+// route or routes/performance.js's roster-edit route — clears their wing/class-teacher/subject
+// assignments so a departed teacher stops appearing as anyone's "relevant Incharge" responsibility
+// or as a class's teacher of record. Deliberately does NOT touch past performance_monthly_reviews,
+// supervision_observations, or performance_memos rows — those stay as historical record.
+async function cascadeStaffDeactivation(staffId) {
+  await db.query('UPDATE staff SET wing=NULL WHERE id=?', [staffId]);
+  await db.query('DELETE FROM staff_wings WHERE staff_id=?', [staffId]);
+  await db.query('UPDATE classes SET class_teacher_id=NULL WHERE class_teacher_id=?', [staffId]);
+  await db.query('DELETE FROM teacher_subjects WHERE staff_id=?', [staffId]);
+}
+
 router.get('/', async (req, res) => {
   try {
     const { search, staff_type } = req.query;
@@ -87,6 +99,7 @@ router.post('/:id/edit', async (req, res) => {
        b.qualification || null, b.address || null, b.date_of_leaving ? 0 : 1,
        req.params.id]
     );
+    if (b.date_of_leaving) await cascadeStaffDeactivation(req.params.id);
     req.flash('success', 'Staff record updated');
     res.redirect('/teachers');
   } catch (err) {
@@ -250,4 +263,5 @@ router.post('/bulk-upload', uploadExcel.single('file'), async (req, res) => {
   }
 });
 
+router.cascadeStaffDeactivation = cascadeStaffDeactivation;
 module.exports = router;

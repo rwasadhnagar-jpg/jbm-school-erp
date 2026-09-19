@@ -1,0 +1,52 @@
+<%- include('../partials/header', { title: 'Class Observation', activePage: 'supervision' }) %>
+<div class="page-header"><div><h1>🔍 Class Observation</h1><div class="breadcrumb"><a href="/supervision/observations" style="color:rgba(255,255,255,0.8)">Observations</a> → <%= wingLabelText %></div></div></div>
+
+<div class="form-card">
+  <div class="form-card-header">📋 Observation Details</div>
+  <div class="form-card-body">
+    <div class="form-grid">
+      <div class="form-group"><label>Class / Section</label><div><%= obs.class_name ? (obs.class_name + ' - ' + obs.section) : '—' %></div></div>
+      <div class="form-group"><label>Teacher</label><div><%= obs.first_name ? (obs.first_name + ' ' + (obs.last_name || '')) : (obs.teacher_name_free || '—') %></div></div>
+      <div class="form-group"><label>Subject / Topic</label><div><%= obs.subject_topic || '—' %></div></div>
+      <div class="form-group"><label>Date</label><div><%= obs.observation_date %></div></div>
+      <div class="form-group"><label>Period</label><div><%= obs.period || '—' %></div></div>
+      <% if (obs.syllabus_position) { %>
+      <div class="form-group"><label>Syllabus Position</label><div><%= obs.syllabus_position.replace('_',' ') %></div></div>
+      <% } %>
+      <div class="form-group"><label>Observed By</label><div><%= obs.observer_name || '—' %></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>Points of Observation</h3></div>
+  <table>
+    <thead><tr><th style="width:36px">#</th><th>Point</th><th style="width:80px">Rating</th><th>Remarks</th></tr></thead>
+    <tbody>
+      <% points.forEach(function(p) { %>
+      <tr>
+        <td><%= p.point_no %></td>
+        <td>
+          <%= p.point_label %>
+          <% if (p.child_name) { %>
+          <div style="font-size:11px;color:#a15c00;background:#fff3cd;border-radius:4px;padding:2px 6px;margin-top:4px;display:inline-block">⚠️ <%= p.child_name %><% if (p.child_reason) { %> — <%= p.child_reason %><% } %></div>
+          <% } %>
+        </td>
+        <td><% if (p.rating) { %><span class="badge badge-purple"><%= p.rating %></span><% } else { %>—<% } %></td>
+        <td><%= p.remarks || '—' %></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<div class="form-card" style="margin-top:16px">
+  <div class="form-card-header">💬 Guidance &amp; Follow-up</div>
+  <div class="form-card-body">
+    <p><strong>Guidance given:</strong> <%= obs.guidance_given || '—' %></p>
+    <% if (obs.revisit_required !== null && typeof obs.revisit_required !== 'undefined') { %>
+    <p><strong>Re-visit required within 10 days:</strong> <%= obs.revisit_required ? 'Yes' : 'No' %></p>
+    <% } %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

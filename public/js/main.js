@@ -1,5 +1,22 @@
 // JBM School ERP — Main JS
 
+// Mobile sidebar (hamburger) toggle
+(function () {
+  const btn = document.getElementById('sidebarToggle');
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (!btn || !sidebar || !backdrop) return;
+
+  function closeSidebar() { sidebar.classList.remove('open'); backdrop.classList.remove('open'); }
+  function openSidebar() { sidebar.classList.add('open'); backdrop.classList.add('open'); }
+
+  btn.addEventListener('click', () => {
+    sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+  });
+  backdrop.addEventListener('click', closeSidebar);
+  sidebar.querySelectorAll('.sidebar-item').forEach(item => item.addEventListener('click', closeSidebar));
+})();
+
 // Dropdown toggle
 document.querySelectorAll('.dropdown').forEach(dd => {
   dd.addEventListener('click', e => { e.stopPropagation(); dd.classList.toggle('open'); });

@@ -1,0 +1,39 @@
+<%- include('../partials/header', { title: 'Class Observations', activePage: 'supervision' }) %>
+<div class="page-header"><div><h1>🔍 Class Observations</h1><div class="breadcrumb">Academic Supervision → Observations</div></div></div>
+
+<div class="toolbar" style="flex-wrap:wrap">
+  <% if (role !== 'incharge') { %>
+  <form method="GET" action="/supervision/observations" class="search-bar">
+    <select name="wing" class="form-control form-control-sm" onchange="this.form.submit()" style="width:220px">
+      <option value="">All wings</option>
+      <% Object.keys(WINGS).forEach(function(w) { %>
+      <option value="<%= w %>" <%= w === wing ? 'selected' : '' %>><%= WINGS[w].label %></option>
+      <% }) %>
+    </select>
+  </form>
+  <% } %>
+  <a href="/supervision/observations/new<%= wing ? '?wing=' + wing : '' %>" class="btn btn-purple">+ New Observation</a>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>Observations (<%= observations.length %>)</h3></div>
+  <table>
+    <thead><tr><th>Date</th><th>Wing</th><th>Class</th><th>Teacher</th><th>Subject / Topic</th><th>Observed By</th><th></th></tr></thead>
+    <tbody>
+      <% if (observations.length) { observations.forEach(function(o) { %>
+      <tr>
+        <td><%= o.observation_date %></td>
+        <td><%= WINGS[o.wing] ? WINGS[o.wing].label : o.wing %></td>
+        <td><%= o.class_name ? (o.class_name + ' - ' + o.section) : '—' %></td>
+        <td><%= o.first_name ? (o.first_name + ' ' + (o.last_name || '')) : (o.teacher_name_free || '—') %></td>
+        <td><%= o.subject_topic || '—' %></td>
+        <td><%= o.observer_name || '—' %></td>
+        <td><a href="/supervision/observations/<%= o.id %>" class="btn btn-outline-purple btn-sm">View</a></td>
+      </tr>
+      <% }) } else { %>
+        <tr><td colspan="7" class="no-data">No observations logged yet</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

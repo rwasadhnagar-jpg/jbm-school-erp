@@ -1,0 +1,59 @@
+<%- include('../partials/header', { title: 'Manage In-charges', activePage: 'supervision' }) %>
+<div class="page-header"><div><h1>🔑 Manage In-charges</h1><div class="breadcrumb">Academic Supervision → In-charges</div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">Each wing needs its own In-charge login, scoped to that wing's classes only. Create one login per wing (Primary, Middle, Secondary, Sr. Secondary). If the same person genuinely covers two wings, add the second one as an "additional wing" below instead of creating a second login — they'll get a switcher to move between them.</div>
+</div>
+
+<div class="toolbar">
+  <a href="/supervision/incharges/add" class="btn btn-purple">+ Add In-charge Login</a>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>In-charge Logins (<%= incharges.length %>)</h3></div>
+  <table>
+    <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Primary Wing</th><th>Additional Wings</th><th>Status</th></tr></thead>
+    <tbody>
+      <% if (incharges.length) { incharges.forEach(function(inc, i) { %>
+      <tr>
+        <td><%= i + 1 %></td>
+        <td><strong><%= inc.name %></strong></td>
+        <td><%= inc.email %></td>
+        <td>
+          <form method="POST" action="/supervision/incharges/<%= inc.id %>/wing" class="search-bar" style="gap:6px">
+            <select name="wing" class="form-control form-control-sm" onchange="this.form.submit()">
+              <option value="">— unassigned —</option>
+              <% Object.keys(WINGS).forEach(function(w) { %>
+              <option value="<%= w %>" <%= inc.wing === w ? 'selected' : '' %>><%= WINGS[w].label %></option>
+              <% }) %>
+            </select>
+          </form>
+        </td>
+        <td>
+          <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+            <% inc.extraWings.forEach(function(ew) { %>
+            <form method="POST" action="/supervision/incharges/extra-wing/<%= ew.id %>/remove" style="display:inline-flex;gap:6px;align-items:center" onsubmit="return confirm('Remove this additional wing?')">
+              <span class="badge badge-blue"><%= WINGS[ew.wing] ? WINGS[ew.wing].label : ew.wing %></span>
+              <button type="submit" class="btn btn-outline-purple btn-sm" style="padding:1px 6px">×</button>
+            </form>
+            <% }) %>
+            <form method="POST" action="/supervision/incharges/<%= inc.id %>/extra-wing/add" style="display:inline-flex;gap:4px">
+              <select name="wing" class="form-control form-control-sm" style="width:150px">
+                <option value="">+ add wing</option>
+                <% Object.keys(WINGS).forEach(function(w) { %>
+                <% if (w !== inc.wing) { %><option value="<%= w %>"><%= WINGS[w].label %></option><% } %>
+                <% }) %>
+              </select>
+              <button type="submit" class="btn btn-outline-purple btn-sm">Add</button>
+            </form>
+          </div>
+        </td>
+        <td><span class="badge <%= inc.is_active ? 'badge-green' : 'badge-red' %>"><%= inc.is_active ? 'Active' : 'Inactive' %></span></td>
+      </tr>
+      <% }) } else { %>
+        <tr><td colspan="6" class="no-data">No in-charge logins yet — add one per wing to start collecting weekly reports.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

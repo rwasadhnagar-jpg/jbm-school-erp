@@ -11,6 +11,7 @@
 <body>
 
 <nav class="navbar">
+  <button id="sidebarToggle" class="hamburger-btn" type="button" aria-label="Menu">☰</button>
   <div class="navbar-brand">
     <img src="/img/logo.png" alt="JBM Logo" style="height:38px;width:38px;object-fit:contain;border-radius:50%;background:#fff;padding:2px;" onerror="this.style.display='none'">
     <span>JBM Public School</span>
@@ -20,19 +21,35 @@
     <button id="enable-push-btn" type="button" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer">🔔 Enable Notifications</button>
     <span class="user-info">👤 <span><%= user.name %></span> (<%= user.role %>)</span>
     <span style="color:rgba(255,255,255,0.4)">|</span>
-    <span style="color:#fff;font-size:12px;opacity:0.8;">AY: <%= academicYear %></span>
+    <span class="navbar-ay" style="color:#fff;font-size:12px;opacity:0.8;">AY: <%= academicYear %></span>
     <a href="/logout">Logout</a>
   </div>
 </nav>
 
 <% const role = user.role; %>
+<% const showSupervisionForRaters = true; /* UAT: Performance now pulls its auto-fill from Weekly Attendance + Class Observations, so Academic Supervision must stay visible to incharges/principal for a real test */ %>
 
-<aside class="sidebar">
+<div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+<aside class="sidebar" id="sidebar">
   <div class="sidebar-section">
     <a href="/dashboard" class="sidebar-item <%= activePage === 'dashboard' ? 'active' : '' %>">
       <span class="icon">📊</span><span class="label">Dashboard</span>
     </a>
   </div>
+
+  <% if (role === 'incharge' && user.wings && user.wings.length > 1) { %>
+  <% const WING_LABELS = { pre_primary:'Pre-Primary Wing', primary:'Primary Wing', middle_secondary:'Middle & Secondary Wing', sr_secondary:'Sr. Secondary Wing' }; %>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Currently managing</div>
+    <form method="GET" action="/supervision" style="padding:0 12px">
+      <select class="form-control form-control-sm" onchange="location.href='/supervision?wing='+this.value" style="width:100%">
+        <% user.wings.forEach(function(w) { %>
+        <option value="<%= w %>" <%= user.wing === w ? 'selected' : '' %>><%= WING_LABELS[w] || w %></option>
+        <% }) %>
+      </select>
+    </form>
+  </div>
+  <% } %>
 
   <% if (role === 'admin') { %>
   <div class="sidebar-section">
@@ -65,6 +82,37 @@
   <% } %>
 
   <% if (['principal','vice_principal','incharge'].includes(role)) { %>
+  <% if (showSupervisionForRaters) { %>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Academic Supervision</div>
+    <a href="/supervision" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">🗓️</span><span class="label">This Week</span>
+    </a>
+    <a href="/supervision/rotation" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">🎲</span><span class="label">Weekly Rotation</span>
+    </a>
+    <a href="/supervision/observations" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">🔍</span><span class="label">Class Observations</span>
+    </a>
+    <% if (role === 'incharge') { %>
+    <a href="/supervision/attendance" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">📅</span><span class="label">Staff Attendance</span>
+    </a>
+    <% } %>
+    <% if (role === 'principal') { %>
+    <a href="/supervision/cross-wing" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">🔀</span><span class="label">Cross-Wing Teachers</span>
+    </a>
+    <a href="/supervision/class-teachers" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">🏫</span><span class="label">Class-Teacher Assignment</span>
+    </a>
+    <% } %>
+  </div>
+  <% } %>
+
+  <% } %>
+
+  <% if (['principal','incharge'].includes(role)) { %>
   <div class="sidebar-section">
     <div class="sidebar-section-title">Teacher Assessment</div>
     <a href="/performance/monthly/entry" class="sidebar-item <%= activePage === 'performance' ? 'active' : '' %>">
@@ -108,6 +156,9 @@
   <% if (role === 'admin') { %>
   <div class="sidebar-section">
     <div class="sidebar-section-title">Teacher Assessment</div>
+    <a href="/performance/pulse" class="sidebar-item <%= activePage === 'performance' ? 'active' : '' %>">
+      <span class="icon">📊</span><span class="label">Teacher Pulse</span>
+    </a>
     <a href="/performance/annual" class="sidebar-item <%= activePage === 'performance' ? 'active' : '' %>">
       <span class="icon">📈</span><span class="label">Annual Summary</span>
     </a>
@@ -125,6 +176,39 @@
     </a>
     <a href="/performance/settings" class="sidebar-item <%= activePage === 'performance' ? 'active' : '' %>">
       <span class="icon">⚖️</span><span class="label">Weights & Settings</span>
+    </a>
+  </div>
+  <% } %>
+
+  <% if (role === 'admin') { %>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Academic Supervision</div>
+    <a href="/supervision" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">🗓️</span><span class="label">Weekly Overview</span>
+    </a>
+    <a href="/supervision/rotation" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">🎲</span><span class="label">Weekly Rotation</span>
+    </a>
+    <a href="/supervision/attendance" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">📅</span><span class="label">Staff Attendance</span>
+    </a>
+    <a href="/supervision/observations" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">🔍</span><span class="label">Class Observations</span>
+    </a>
+    <a href="/supervision/meeting" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">🗒️</span><span class="label">Weekly Meeting Minutes</span>
+    </a>
+    <a href="/supervision/teacher-overview" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">📊</span><span class="label">Teacher Overview</span>
+    </a>
+    <a href="/supervision/incharges" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">🔑</span><span class="label">Manage In-charges</span>
+    </a>
+    <a href="/supervision/cross-wing" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">🔀</span><span class="label">Cross-Wing Teachers</span>
+    </a>
+    <a href="/supervision/class-teachers" class="sidebar-item <%= activePage === 'supervision' ? 'active' : '' %>">
+      <span class="icon">🏫</span><span class="label">Class-Teacher Assignment</span>
     </a>
   </div>
   <% } %>

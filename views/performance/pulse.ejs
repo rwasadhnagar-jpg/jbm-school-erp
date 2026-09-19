@@ -1,0 +1,522 @@
+<%- include('../partials/header', { title: 'Teacher Pulse', activePage: 'performance' }) %>
+<div class="page-header"><div><h1>📊 Teacher Pulse</h1><div class="breadcrumb">Teacher Assessment → Pulse Dashboard</div></div></div>
+
+<style>
+  .pulse-app{
+    --p-accent: #4A0E8F; --p-accent-ink: #ffffff; --p-accent-wash: rgba(74,14,143,0.08); --p-accent-wash-strong: rgba(74,14,143,0.14);
+    --p-surface: #fcfcfb; --p-sunken: #f2f1ed;
+    --p-ink: #0b0b0b; --p-ink-2: #52514e; --p-ink-muted: #898781; --p-grid: #e1e0d9; --p-border: rgba(11,11,11,0.10);
+    --p-good: #0ca30c; --p-warning: #fab219; --p-serious: #ec835a; --p-critical: #d03b3b;
+    --p-shadow: 0 1px 2px rgba(11,11,11,0.04), 0 6px 20px -8px rgba(11,11,11,0.10);
+    font-variant-numeric: tabular-nums;
+  }
+  .pulse-app .tabular{ font-variant-numeric: tabular-nums; }
+  .pulse-controls{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .pulse-seg{ display:inline-flex; background:var(--p-surface); border:1px solid var(--p-border); border-radius:11px; padding:3px; gap:2px; box-shadow:var(--p-shadow); }
+  .pulse-seg button{ appearance:none; border:none; background:transparent; color:var(--p-ink-2); font-size:13px; font-weight:600; padding:7px 13px; border-radius:8px; cursor:pointer; }
+  .pulse-seg button[aria-pressed="true"]{ background:var(--p-accent); color:var(--p-accent-ink); }
+  .pulse-unassigned{ font-size:12.5px; color:var(--p-ink-muted); }
+
+  .pulse-lookup{ margin-bottom:16px; position:relative; max-width:440px; }
+  .pulse-lookup-input{ width:100%; font-size:14px; padding:11px 14px; border-radius:11px; border:1px solid var(--p-border); background:var(--p-surface); color:var(--p-ink); }
+  .pulse-lookup-results{ position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:8; background:var(--p-surface); border:1px solid var(--p-border); border-radius:12px; box-shadow:var(--p-shadow); max-height:280px; overflow-y:auto; padding:6px; }
+  .pulse-lookup-item{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 10px; border-radius:8px; cursor:pointer; }
+  .pulse-lookup-item:hover{ background:var(--p-accent-wash); }
+  .pulse-lookup-item .li-name{ font-size:13.5px; font-weight:600; }
+  .pulse-lookup-item .li-meta{ font-size:11.5px; color:var(--p-ink-muted); margin-top:1px; }
+  .pulse-empty{ padding:12px 10px; font-size:13px; color:var(--p-ink-muted); }
+
+  .pulse-card{ background:var(--p-surface); border:1px solid var(--p-border); border-radius:16px; box-shadow:var(--p-shadow); padding:18px 20px; }
+  .pulse-grid{ display:grid; gap:14px; margin-bottom:14px; }
+  .pulse-kpi-row{ grid-template-columns:repeat(4,1fr); }
+  .pulse-two-col{ grid-template-columns:1.1fr 1.4fr; }
+  @media (max-width:900px){ .pulse-kpi-row{ grid-template-columns:repeat(2,1fr); } .pulse-two-col{ grid-template-columns:1fr; } }
+  .pulse-card-label{ font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--p-ink-muted); font-weight:600; margin-bottom:10px; }
+
+  .pulse-kpi .lbl{ font-size:12.5px; color:var(--p-ink-2); font-weight:500; margin-bottom:8px; }
+  .pulse-kpi .val-row{ display:flex; align-items:baseline; gap:6px; margin-bottom:8px; }
+  .pulse-kpi .val{ font-size:26px; font-weight:700; color:var(--p-ink); }
+  .pulse-kpi .unit{ font-size:12.5px; color:var(--p-ink-muted); }
+  .pulse-spark{ height:30px; width:100%; }
+
+  .pulse-legend{ display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; }
+  .pulse-legend-item{ display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--p-ink-2); }
+  .pulse-swatch{ width:10px; height:10px; border-radius:3px; flex:none; }
+
+  .pulse-bar-row{ display:grid; grid-template-columns:150px 1fr 62px; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer; border-radius:8px; padding:4px 6px; margin-left:-6px; }
+  .pulse-bar-row:hover{ background:var(--p-accent-wash); }
+  .pulse-bar-row .name{ font-size:13px; font-weight:500; color:var(--p-ink); }
+  .pulse-bar-row .name small{ display:block; font-size:10.5px; color:var(--p-ink-muted); font-weight:400; }
+  .pulse-bar-track{ height:10px; background:var(--p-sunken); border-radius:6px; overflow:hidden; }
+  .pulse-bar-fill{ height:100%; border-radius:6px; transition:width .6s cubic-bezier(.2,.8,.2,1); }
+  .pulse-bar-row .value{ font-size:13px; font-weight:600; text-align:right; }
+  .pulse-bar-row .go{ font-size:12px; color:var(--p-accent); font-weight:600; margin-left:4px; }
+
+  .pulse-attn-item{ display:grid; grid-template-columns:4px 1fr auto; gap:12px; align-items:center; padding:10px 4px; border-bottom:1px solid var(--p-grid); }
+  .pulse-attn-item:last-child{ border-bottom:none; }
+  .pulse-attn-stripe{ align-self:stretch; border-radius:3px; }
+  .pulse-attn-title{ font-size:13.5px; font-weight:600; color:var(--p-ink); }
+  .pulse-attn-sub{ font-size:12px; color:var(--p-ink-2); margin-top:2px; }
+  .pulse-attn-score{ font-size:15px; font-weight:700; text-align:right; }
+
+  .pulse-gauge-wrap{ display:flex; align-items:center; justify-content:center; position:relative; padding:6px 0; }
+  .pulse-gauge-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
+  .pulse-gauge-center .num{ font-size:34px; font-weight:700; color:var(--p-ink); }
+  .pulse-gauge-center .cap{ font-size:11px; color:var(--p-ink-muted); text-transform:uppercase; letter-spacing:.06em; margin-top:2px; }
+
+  .pulse-status-pill{ display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; padding:5px 10px; border-radius:100px; white-space:nowrap; }
+  .pulse-status-pill::before{ content:"●"; font-size:9px; }
+  .pulse-status-pill.good{ background:rgba(12,163,12,0.12); color:var(--p-good); }
+  .pulse-status-pill.warning{ background:rgba(250,178,25,0.16); color:#9a6b00; }
+  .pulse-status-pill.serious{ background:rgba(236,131,90,0.16); color:#a4441f; }
+  .pulse-status-pill.critical{ background:rgba(208,59,59,0.12); color:var(--p-critical); }
+  .pulse-status-pill.nodata{ background:var(--p-sunken); color:var(--p-ink-muted); }
+  .pulse-status-pill.nodata::before{ content:"○"; }
+
+  .pulse-drill, .pulse-wing-list{ margin-bottom:20px; border:1.5px solid var(--p-accent-wash-strong); }
+  .pulse-drill-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; }
+  .pulse-drill-head h2{ font-size:18px; display:inline; margin-left:8px; color:var(--p-ink); }
+  .pulse-drill-meta{ font-size:12.5px; color:var(--p-ink-muted); margin-top:4px; }
+  .pulse-badge{ font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:4px 8px; border-radius:6px; background:var(--p-accent-wash); color:var(--p-accent); }
+  .pulse-close{ appearance:none; border:1px solid var(--p-border); background:var(--p-sunken); color:var(--p-ink-2); height:30px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer; padding:0 12px; }
+  .pulse-close:hover{ color:var(--p-ink); }
+  .pulse-drill-top{ display:flex; gap:26px; flex-wrap:wrap; align-items:center; margin:16px 0 6px; }
+  .pulse-drill-stats{ display:flex; flex-direction:column; gap:9px; flex:1; min-width:200px; }
+  .pulse-drill-stats .row{ display:flex; justify-content:space-between; gap:10px; font-size:13px; color:var(--p-ink-2); }
+  .pulse-drill-stats .row b{ color:var(--p-ink); }
+  .pulse-drill-spark-wrap{ flex:1; min-width:200px; }
+  .pulse-drill-spark-wrap .cap{ font-size:11px; color:var(--p-ink-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+  .pulse-section-label{ font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--p-ink-muted); font-weight:600; margin:18px 0 10px; }
+  .pulse-cat-bars .pulse-bar-row{ grid-template-columns:190px 1fr 40px; cursor:default; }
+  .pulse-cat-bars .pulse-bar-row:hover{ background:none; }
+  .pulse-flags-empty{ font-size:13px; color:var(--p-ink-2); padding:4px; }
+
+  .pulse-tlist-item{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 8px; border-bottom:1px solid var(--p-grid); cursor:pointer; border-radius:8px; }
+  .pulse-tlist-item:last-child{ border-bottom:none; }
+  .pulse-tlist-item:hover{ background:var(--p-accent-wash); }
+  .pulse-tlist-name{ font-size:13.5px; font-weight:600; color:var(--p-ink); }
+  .pulse-tlist-meta{ font-size:11.5px; color:var(--p-ink-muted); margin-top:2px; }
+  .pulse-tlist-right{ display:flex; align-items:center; gap:10px; flex:none; }
+  .pulse-tlist-score{ font-size:16px; font-weight:700; color:var(--p-ink); }
+  .pulse-tlist-arrow{ color:var(--p-ink-muted); font-size:14px; }
+  .pulse-footnote{ font-size:12px; color:var(--p-ink-muted); text-align:center; margin-top:20px; }
+</style>
+
+<div class="pulse-app" id="pulseApp">
+  <div class="pulse-controls">
+    <div class="pulse-seg" id="periodTabs" role="tablist" aria-label="Time period">
+      <button aria-pressed="true" data-period="today">Today</button>
+      <button aria-pressed="false" data-period="week">This Week</button>
+      <button aria-pressed="false" data-period="month">This Month</button>
+      <button aria-pressed="false" data-period="year">This Year</button>
+    </div>
+    <div class="pulse-unassigned" id="unassignedNote"></div>
+  </div>
+
+  <div class="pulse-lookup">
+    <input type="text" id="pulseLookupInput" class="pulse-lookup-input" placeholder="Look up a teacher by name or wing…" autocomplete="off">
+    <div class="pulse-lookup-results" id="pulseLookupResults" hidden></div>
+  </div>
+
+  <section class="pulse-card pulse-wing-list" id="wingListPanel" hidden>
+    <div class="pulse-drill-head">
+      <div><span class="pulse-badge">Wing</span><h2 id="wlName"></h2><div class="pulse-drill-meta" id="wlMeta"></div></div>
+      <button class="pulse-close" id="wlClose">✕ Close</button>
+    </div>
+    <div class="pulse-section-label">Teachers</div>
+    <div id="wlTeachers"></div>
+  </section>
+
+  <section class="pulse-card pulse-drill" id="drillPanel" hidden>
+    <div class="pulse-drill-head">
+      <div><span class="pulse-badge">Teacher</span><h2 id="drillName"></h2><div class="pulse-drill-meta" id="drillMeta"></div></div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <span class="pulse-status-pill" id="drillStatus"></span>
+        <button class="pulse-close" id="drillClose">✕</button>
+      </div>
+    </div>
+    <div class="pulse-drill-top">
+      <div class="pulse-gauge-wrap" style="width:140px;height:140px;flex:none;">
+        <svg id="drillGauge" width="140" height="140" viewBox="0 0 140 140"></svg>
+        <div class="pulse-gauge-center"><div class="num tabular" id="drillGaugeNum">–</div><div class="cap" id="drillGaugeCap"></div></div>
+      </div>
+      <div class="pulse-drill-stats">
+        <div class="row"><span>This period</span><b id="drillCount"></b></div>
+        <div class="row"><span>Flags on record</span><b id="drillFlagsCount"></b></div>
+      </div>
+      <div class="pulse-drill-spark-wrap">
+        <div class="cap" id="drillSparkCap">Recent trend</div>
+        <svg id="drillSpark" viewBox="0 0 200 48" preserveAspectRatio="none" style="width:100%;height:48px;"></svg>
+      </div>
+    </div>
+    <div class="pulse-section-label" id="drillCatsLabel">Category breakdown</div>
+    <div class="pulse-cat-bars" id="drillCategories"></div>
+    <div class="pulse-section-label">Flags &amp; notes</div>
+    <div id="drillFlagsWrap"></div>
+  </section>
+
+  <div class="pulse-grid pulse-kpi-row" id="kpis"></div>
+  <div class="pulse-grid pulse-two-col">
+    <div class="pulse-card">
+      <div class="pulse-card-label" id="gaugeLabel"></div>
+      <div class="pulse-gauge-wrap">
+        <svg id="mainGauge" width="180" height="180" viewBox="0 0 180 180"></svg>
+        <div class="pulse-gauge-center"><div class="num tabular" id="mainGaugeNum">–</div><div class="cap" id="mainGaugeCap"></div></div>
+      </div>
+      <div style="text-align:center;font-size:12.5px;color:var(--p-ink-2)" id="headline"></div>
+    </div>
+    <div class="pulse-card">
+      <div class="pulse-card-label">Wings ranked — click one to see its teachers</div>
+      <div id="bars"></div>
+    </div>
+  </div>
+  <div class="pulse-grid pulse-two-col">
+    <div class="pulse-card">
+      <div class="pulse-card-label" id="donutLabel"></div>
+      <div class="pulse-gauge-wrap">
+        <svg id="mainDonut" width="180" height="180" viewBox="0 0 180 180"></svg>
+        <div class="pulse-gauge-center"><div class="num tabular" id="donutNum">–</div><div class="cap" id="donutCap"></div></div>
+      </div>
+      <div class="pulse-legend" id="legend"></div>
+    </div>
+    <div class="pulse-card">
+      <div class="pulse-card-label" id="attnLabel"></div>
+      <div id="attn"></div>
+    </div>
+  </div>
+
+  <div class="pulse-footnote">Generated <span id="genTime"></span> · Today/Week come from Academic Supervision's 1-5 in-class ratings; Month/Year come from Monthly Review's 0-10 score. Admin only.</div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var SERVER = <%- pulseJSON %>;
+  var svgNS = "http://www.w3.org/2000/svg";
+  var reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var PERIOD_INDEX = { today:0, week:1, month:2, year:3 };
+  var STATUS_TEXT = { good:"On track", warning:"Watch", serious:"Needs support", critical:"Critical", nodata:"No data yet" };
+
+  var state = { period: "today" };
+  var drillEntity = null;
+  var wingListKey = null;
+
+  function wingByKey(key){ return SERVER.wings.filter(function(w){ return w.key===key; })[0]; }
+  function teacherById(id){ return SERVER.teachers.filter(function(t){ return t.id===id; })[0]; }
+
+  function statusFor(score, max){
+    if(score === null || score === undefined) return "nodata";
+    if(max === 5){
+      if(score>=4.0) return "good";
+      if(score>=3.5) return "warning";
+      if(score>=3.0) return "serious";
+      return "critical";
+    }
+    var th = SERVER.thresholds10;
+    if(score>=th.top) return "good";
+    if(score>=th.avg) return "warning";
+    return "critical";
+  }
+
+  function svgEl(tag, attrs){
+    var el = document.createElementNS(svgNS, tag);
+    for(var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+  function sparkPath(values, w, h){
+    if(!values.length) values = [0];
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    if(max===min) max = min+1;
+    var pts = values.map(function(v,i){
+      var x = values.length>1 ? (i/(values.length-1))*w : w/2;
+      var y = h - ((v-min)/(max-min))*h*0.82 - h*0.06;
+      return [x,y];
+    });
+    var d = "M"+pts.map(function(p){return p[0].toFixed(1)+","+p[1].toFixed(1);}).join(" L");
+    var area = d + " L"+w+","+h+" L0,"+h+" Z";
+    return { line:d, area:area, last:pts[pts.length-1] };
+  }
+  function animateNumber(el, to, decimals){
+    if(reduceMotion || to===null){ el.textContent = (to==null?"–":to.toFixed(decimals)); return; }
+    var from = parseFloat(el.dataset.val||"0")||0;
+    var start = performance.now(), dur=500;
+    function step(t){
+      var p = Math.min(1,(t-start)/dur);
+      var v = from + (to-from)*(1-Math.pow(1-p,3));
+      el.textContent = v.toFixed(decimals);
+      if(p<1) requestAnimationFrame(step); else el.dataset.val = to;
+    }
+    requestAnimationFrame(step);
+  }
+
+  function renderGauge(svg, value, max, colorVar){
+    svg.innerHTML = "";
+    var size = svg.viewBox.baseVal.width || 180;
+    var cx=size/2, cy=size/2, r=size*0.4, sw=size*0.078;
+    var C = 2*Math.PI*r;
+    var frac = Math.max(0, Math.min(1, (value||0)/max));
+    svg.appendChild(svgEl("circle",{ cx:cx, cy:cy, r:r, fill:"none", stroke:"var(--p-sunken)", "stroke-width":sw }));
+    var active = svgEl("circle",{ cx:cx, cy:cy, r:r, fill:"none", stroke:colorVar, "stroke-width":sw,
+      "stroke-linecap":"round", "stroke-dasharray":C, transform:"rotate(-90 "+cx+" "+cy+")" });
+    active.setAttribute("stroke-dashoffset", C);
+    svg.appendChild(active);
+    requestAnimationFrame(function(){
+      active.style.transition = reduceMotion? "none":"stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1)";
+      active.setAttribute("stroke-dashoffset", (C - C*frac));
+    });
+  }
+  function renderDonut(svg, segments, cx, cy, r, sw){
+    svg.innerHTML = "";
+    var total = segments.reduce(function(s,x){return s+x.value;},0) || 1;
+    var C = 2*Math.PI*r, gap=6, acc=0;
+    svg.appendChild(svgEl("circle",{ cx:cx, cy:cy, r:r, fill:"none", stroke:"var(--p-sunken)", "stroke-width":sw }));
+    segments.forEach(function(seg){
+      var frac = seg.value/total;
+      var len = Math.max(0, frac*C - gap);
+      var c = svgEl("circle",{ cx:cx, cy:cy, r:r, fill:"none", stroke:seg.color, "stroke-width":sw,
+        "stroke-dasharray":len+" "+(C-len), "stroke-dashoffset":(-acc + gap/2), transform:"rotate(-90 "+cx+" "+cy+")" });
+      svg.appendChild(c);
+      acc += frac*C;
+    });
+    return total;
+  }
+  function renderLegend(container, segments){
+    container.innerHTML = "";
+    segments.forEach(function(seg){
+      var item = document.createElement("div");
+      item.className = "pulse-legend-item";
+      item.innerHTML = '<span class="pulse-swatch" style="background:'+seg.color+'"></span>'+seg.label+' · '+seg.value;
+      container.appendChild(item);
+    });
+  }
+
+  function renderKpis(container, kpis){
+    container.innerHTML = "";
+    kpis.forEach(function(k){
+      var tile = document.createElement("div");
+      tile.className = "pulse-card pulse-kpi";
+      var decimals = (k.value % 1 !== 0) ? 1 : 0;
+      tile.innerHTML =
+        '<div class="lbl">'+k.label+'</div>'+
+        '<div class="val-row"><span class="val tabular" data-val="0">0</span><span class="unit">'+k.unit+'</span></div>'+
+        '<svg class="pulse-spark" viewBox="0 0 100 32" preserveAspectRatio="none"></svg>';
+      container.appendChild(tile);
+      animateNumber(tile.querySelector(".val"), k.value, decimals);
+      var sp = sparkPath(k.trend, 100, 32);
+      var svg = tile.querySelector(".pulse-spark");
+      svg.appendChild(svgEl("path",{ d:sp.area, fill:"var(--p-accent)", opacity:"0.10", stroke:"none" }));
+      svg.appendChild(svgEl("path",{ d:sp.line, fill:"none", stroke:"var(--p-accent)", "stroke-width":"2", "stroke-linecap":"round", "stroke-linejoin":"round" }));
+      svg.appendChild(svgEl("circle",{ cx:sp.last[0], cy:sp.last[1], r:"2.6", fill:"var(--p-accent)" }));
+    });
+  }
+
+  function renderBars(container, wings, wingScores, max){
+    container.innerHTML = "";
+    var ranked = wings.slice().sort(function(a,b){ return (wingScores[b.key]||0)-(wingScores[a.key]||0); });
+    ranked.forEach(function(w){
+      var score = wingScores[w.key];
+      var row = document.createElement("div");
+      row.className = "pulse-bar-row";
+      row.innerHTML =
+        '<div class="name">'+w.name+'<small>'+w.sub+' · '+w.staff+' staff</small></div>'+
+        '<div class="pulse-bar-track"><div class="pulse-bar-fill" style="width:0%;background:var(--p-accent)"></div></div>'+
+        '<div class="value tabular">'+(score==null?'—':score.toFixed(1))+'<span class="go">›</span></div>';
+      container.appendChild(row);
+      var fill = row.querySelector(".pulse-bar-fill");
+      requestAnimationFrame(function(){ fill.style.width = ((score||0)/max*100)+"%"; });
+      row.addEventListener("click", function(){ openWingList(w.key); });
+    });
+  }
+
+  function renderAttention(container, items, max){
+    container.innerHTML = "";
+    if(!items.length){ container.innerHTML = '<div class="pulse-flags-empty">Nothing flagged for this period.</div>'; return; }
+    items.forEach(function(it){
+      var color = it.score==null ? "var(--p-ink-muted)" : "var(--p-"+statusFor(it.score,max)+")";
+      var row = document.createElement("div");
+      row.className = "pulse-attn-item";
+      row.innerHTML =
+        '<div class="pulse-attn-stripe" style="background:'+color+'"></div>'+
+        '<div><div class="pulse-attn-title">'+it.title+'</div><div class="pulse-attn-sub">'+it.sub+'</div></div>'+
+        '<div class="pulse-attn-score tabular" style="color:'+color+'">'+(it.score==null?"—":it.score.toFixed(1))+'</div>';
+      container.appendChild(row);
+    });
+  }
+
+  function renderCategoryBars(container, categories, max){
+    container.innerHTML = "";
+    if(!categories.length){ container.innerHTML = '<div class="pulse-flags-empty">No breakdown recorded for this period yet.</div>'; return; }
+    categories.forEach(function(c){
+      var color = "var(--p-"+statusFor(c.value, max)+")";
+      var row = document.createElement("div");
+      row.className = "pulse-bar-row";
+      row.innerHTML =
+        '<div class="name">'+c.label+'</div>'+
+        '<div class="pulse-bar-track"><div class="pulse-bar-fill" style="width:0%;background:'+color+'"></div></div>'+
+        '<div class="value tabular">'+c.value.toFixed(1)+'</div>';
+      container.appendChild(row);
+      var fill = row.querySelector(".pulse-bar-fill");
+      requestAnimationFrame(function(){ fill.style.width = (c.value/max*100)+"%"; });
+    });
+  }
+
+  /* ---- Lookup ---- */
+  function renderLookupResults(query){
+    var results = document.getElementById("pulseLookupResults");
+    var q = query.trim().toLowerCase();
+    if(!q){ results.hidden = true; results.innerHTML=""; return; }
+    var matches = SERVER.teachers.filter(function(t){
+      var wn = t.wing ? (wingByKey(t.wing)||{name:t.wing}).name : "Unassigned";
+      return (t.name+" "+t.meta+" "+wn).toLowerCase().indexOf(q) !== -1;
+    }).slice(0,8);
+    results.innerHTML = "";
+    if(!matches.length){ results.innerHTML = '<div class="pulse-empty">No teacher matches "'+query+'".</div>'; }
+    else {
+      matches.forEach(function(t){
+        var wn = t.wing ? (wingByKey(t.wing)||{name:t.wing}).name : "Unassigned";
+        var item = document.createElement("div");
+        item.className = "pulse-lookup-item";
+        item.innerHTML = '<div><div class="li-name">'+t.name+'</div><div class="li-meta">'+t.meta+' · '+wn+'</div></div>';
+        item.addEventListener("click", function(){ selectEntity(t); });
+        results.appendChild(item);
+      });
+    }
+    results.hidden = false;
+  }
+  function selectEntity(t){
+    drillEntity = t; wingListKey = null;
+    document.getElementById("pulseLookupInput").value = t.name;
+    document.getElementById("pulseLookupResults").hidden = true;
+    render();
+    document.getElementById("drillPanel").scrollIntoView({ behavior: reduceMotion?"auto":"smooth", block:"start" });
+  }
+  function selectEntityKeepWing(t){
+    drillEntity = t; render();
+    document.getElementById("drillPanel").scrollIntoView({ behavior: reduceMotion?"auto":"smooth", block:"start" });
+  }
+  function clearDrill(){ drillEntity=null; render(); }
+  function openWingList(key){
+    wingListKey = key; drillEntity = null; render();
+    document.getElementById("wingListPanel").scrollIntoView({ behavior: reduceMotion?"auto":"smooth", block:"start" });
+  }
+  function closeWingList(){ wingListKey = null; render(); }
+
+  function renderWingList(){
+    var panel = document.getElementById("wingListPanel");
+    if(!wingListKey || drillEntity){ panel.hidden = true; return; }
+    panel.hidden = false;
+    var w = wingByKey(wingListKey);
+    var max = state.period==="month"||state.period==="year" ? 10 : 5;
+    var idx = PERIOD_INDEX[state.period];
+    var list = SERVER.teachers.filter(function(t){ return t.wing===wingListKey; })
+      .sort(function(a,b){ return (b.overallByPeriod[idx]||0)-(a.overallByPeriod[idx]||0); });
+    document.getElementById("wlName").textContent = w.name+" — Teachers";
+    document.getElementById("wlMeta").textContent = w.sub+" · "+list.length+" of "+w.staff+" staff";
+    var wrap = document.getElementById("wlTeachers");
+    wrap.innerHTML = "";
+    if(!list.length){ wrap.innerHTML = '<div class="pulse-flags-empty">No teachers assigned to this wing yet.</div>'; return; }
+    list.forEach(function(t){
+      var score = t.overallByPeriod[idx];
+      var status = statusFor(score, max);
+      var row = document.createElement("div");
+      row.className = "pulse-tlist-item";
+      row.innerHTML =
+        '<div><div class="pulse-tlist-name">'+t.name+'</div><div class="pulse-tlist-meta">'+t.meta+'</div></div>'+
+        '<div class="pulse-tlist-right"><span class="pulse-status-pill '+status+'">'+STATUS_TEXT[status]+'</span>'+
+        '<span class="pulse-tlist-score tabular">'+(score?score.toFixed(1):'—')+'</span><span class="pulse-tlist-arrow">›</span></div>';
+      row.addEventListener("click", function(){ selectEntityKeepWing(t); });
+      wrap.appendChild(row);
+    });
+  }
+
+  function renderDrill(){
+    var panel = document.getElementById("drillPanel");
+    if(!drillEntity){ panel.hidden = true; return; }
+    panel.hidden = false;
+    var t = drillEntity;
+    var max = state.period==="month"||state.period==="year" ? 10 : 5;
+    var idx = PERIOD_INDEX[state.period];
+    var score = t.overallByPeriod[idx];
+    var status = statusFor(score, max);
+    var wn = t.wing ? (wingByKey(t.wing)||{name:t.wing}).name : "Unassigned";
+
+    document.getElementById("drillName").textContent = t.name;
+    document.getElementById("drillMeta").textContent = t.meta+" · "+wn;
+    var pill = document.getElementById("drillStatus");
+    pill.className = "pulse-status-pill "+status; pill.textContent = STATUS_TEXT[status];
+
+    var closeBtn = document.getElementById("drillClose");
+    if(wingListKey){ closeBtn.textContent = "‹ Back to "+wingByKey(wingListKey).name; }
+    else { closeBtn.textContent = "✕"; }
+
+    renderGauge(document.getElementById("drillGauge"), score, max, "var(--p-accent)");
+    animateNumber(document.getElementById("drillGaugeNum"), score||0, max===10?1:1);
+    document.getElementById("drillGaugeCap").textContent = "out of "+max.toFixed(1);
+
+    document.getElementById("drillCount").textContent = t.countLabel[state.period];
+    document.getElementById("drillFlagsCount").textContent = t.flags.length ? (t.flags.length+" on record") : "None on record";
+
+    var trend = t.trendByPeriod[state.period] || [0];
+    document.getElementById("drillSparkCap").textContent = (state.period==="today"||state.period==="week") ? "Last 7 days" : "Recent months";
+    var sp = sparkPath(trend, 200, 48);
+    var svg = document.getElementById("drillSpark");
+    svg.innerHTML = "";
+    svg.appendChild(svgEl("path",{ d:sp.area, fill:"var(--p-accent)", opacity:"0.10", stroke:"none" }));
+    svg.appendChild(svgEl("path",{ d:sp.line, fill:"none", stroke:"var(--p-accent)", "stroke-width":"2", "stroke-linecap":"round", "stroke-linejoin":"round" }));
+    svg.appendChild(svgEl("circle",{ cx:sp.last[0], cy:sp.last[1], r:"3.2", fill:"var(--p-accent)" }));
+
+    document.getElementById("drillCatsLabel").textContent = (state.period==="today"||state.period==="week") ? "Observation checklist (this period)" : (state.period==="month" ? "Monthly review breakdown" : "Annual composition");
+    renderCategoryBars(document.getElementById("drillCategories"), t.categoriesByPeriod[state.period], max);
+
+    var flagsWrap = document.getElementById("drillFlagsWrap");
+    if(t.flags.length){ renderAttention(flagsWrap, t.flags, max); }
+    else { flagsWrap.innerHTML = '<div class="pulse-flags-empty">No flags — steady performance.</div>'; }
+  }
+
+  function render(){
+    var p = SERVER.periods[state.period];
+    var max = state.period==="month"||state.period==="year" ? 10 : 5;
+    document.querySelectorAll("#periodTabs button").forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.period===state.period)); });
+    document.getElementById("unassignedNote").textContent = SERVER.unassignedCount ? SERVER.unassignedCount+" staff have no wing assigned yet" : "";
+
+    renderKpis(document.getElementById("kpis"), p.kpis);
+    document.getElementById("gaugeLabel").textContent = p.gaugeLabel;
+    renderGauge(document.getElementById("mainGauge"), p.gauge, max, "var(--p-accent)");
+    animateNumber(document.getElementById("mainGaugeNum"), p.gauge||0, 1);
+    document.getElementById("mainGaugeCap").textContent = "out of "+max.toFixed(1);
+    document.getElementById("headline").textContent = p.headline;
+    renderBars(document.getElementById("bars"), SERVER.wings, p.wingScores, max);
+
+    document.getElementById("donutLabel").textContent = p.bandLabel;
+    var segs = p.statusOrder.map(function(k){ return { label:p.bandLabels[k], value:p.bandDist[k]||0, color:"var(--p-"+k+")" }; });
+    var total = renderDonut(document.getElementById("mainDonut"), segs, 90, 90, 72, 18);
+    animateNumber(document.getElementById("donutNum"), total, 0);
+    document.getElementById("donutCap").textContent = p.bandUnit;
+    renderLegend(document.getElementById("legend"), segs);
+
+    document.getElementById("attnLabel").textContent = p.attnLabel;
+    renderAttention(document.getElementById("attn"), p.attention, max);
+
+    renderWingList();
+    renderDrill();
+  }
+
+  document.getElementById("periodTabs").addEventListener("click", function(e){
+    var btn = e.target.closest("button"); if(!btn) return;
+    state.period = btn.dataset.period; render();
+  });
+  var lookupInput = document.getElementById("pulseLookupInput");
+  lookupInput.addEventListener("input", function(e){ renderLookupResults(e.target.value); });
+  lookupInput.addEventListener("focus", function(e){ if(e.target.value) renderLookupResults(e.target.value); });
+  document.addEventListener("click", function(e){
+    if(!e.target.closest(".pulse-lookup")) document.getElementById("pulseLookupResults").hidden = true;
+  });
+  document.getElementById("drillClose").addEventListener("click", clearDrill);
+  document.getElementById("wlClose").addEventListener("click", closeWingList);
+  document.getElementById("genTime").textContent = new Date(SERVER.generatedAt).toLocaleString('en-IN');
+
+  render();
+})();
+</script>
+
+<%- include('../partials/footer') %>

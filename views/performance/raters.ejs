@@ -1,18 +1,18 @@
-<%- include('../partials/header', { title: 'Rater Logins', activePage: 'performance' }) %>
-<div class="page-header"><div><h1>🔑 Rater Logins</h1><div class="breadcrumb">Teacher Assessment → Rater Logins</div></div></div>
+<%- include('../partials/header', { title: 'Principal / Vice Principal Logins', activePage: 'performance' }) %>
+<div class="page-header"><div><h1>🔑 Principal / Vice Principal Logins</h1><div class="breadcrumb">Teacher Assessment → Logins</div></div></div>
 
 <div class="dashboard-widget" style="margin-bottom:16px">
   <div class="widget-body">
-    Principal, Vice Principal, and Incharge each get their own login here and score every staff member independently every month — none of them can see what the others entered. Only you (Chairman / admin) see all three scores side by side, plus the combined average, on the <a href="/performance/annual">Annual Summary</a>.
+    Each wing's Incharge enters the monthly review for their own teachers (create/manage those under <a href="/supervision/incharges">Academic Supervision → Manage In-charges</a>, where a wing is always set). Principal can review and correct any teacher's entry, and issues memos. Vice Principal has no role in Teacher Performance.
   </div>
 </div>
 
 <div class="toolbar">
-  <a href="/performance/raters/add" class="btn btn-purple">+ Add Rater Login</a>
+  <a href="/performance/raters/add" class="btn btn-purple">+ Add Login</a>
 </div>
 
 <div class="table-container">
-  <div class="table-header"><h3>Rater Logins (<%= raters.length %>)</h3></div>
+  <div class="table-header"><h3>Logins (<%= raters.length %>)</h3></div>
   <table>
     <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead>
     <tbody>
@@ -25,7 +25,7 @@
         <td><span class="badge <%= r.is_active ? 'badge-green' : 'badge-red' %>"><%= r.is_active ? 'Active' : 'Inactive' %></span></td>
       </tr>
       <% }) } else { %>
-        <tr><td colspan="5" class="no-data">No rater logins yet — add Principal, Vice Principal, and Incharge logins to start scoring.</td></tr>
+        <tr><td colspan="5" class="no-data">No logins yet — add a Principal login to get started.</td></tr>
       <% } %>
     </tbody>
   </table>

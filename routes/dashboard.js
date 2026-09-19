@@ -5,7 +5,9 @@ const db = require('../db');
 router.get('/', async (req, res) => {
   if (req.session.user && req.session.user.role === 'parent') return res.redirect('/portal/dashboard');
   if (req.session.user && req.session.user.role === 'student') return res.redirect('/portal/dashboard');
-  if (req.session.user && ['principal', 'vice_principal', 'incharge'].includes(req.session.user.role)) return res.redirect('/performance');
+  // Vice Principal has no role in Teacher Performance any more (Academic Monitoring only).
+  if (req.session.user && req.session.user.role === 'vice_principal') return res.redirect('/supervision');
+  if (req.session.user && ['principal', 'incharge'].includes(req.session.user.role)) return res.redirect('/performance');
   try {
     const [[{ totalStudents }]] = await db.query('SELECT COUNT(*) as totalStudents FROM students WHERE status = "active"');
     const [[{ totalStaff }]] = await db.query('SELECT COUNT(*) as totalStaff FROM staff WHERE is_active = 1');

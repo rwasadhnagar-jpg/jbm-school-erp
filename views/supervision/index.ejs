@@ -1,0 +1,70 @@
+<%- include('../partials/header', { title: 'Academic Supervision', activePage: 'supervision' }) %>
+<div class="page-header"><div><h1>🗓️ Academic Supervision — This Week</h1><div class="breadcrumb"><%= weekStart %><%= typeof weekEnd !== 'undefined' ? ' to ' + weekEnd : '' %></div></div></div>
+
+<% if (typeof wingError !== 'undefined' && wingError) { %>
+
+<div class="dashboard-widget"><div class="widget-body">⚠️ <%= wingError %></div></div>
+
+<% } else if (role === 'incharge') { %>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">You are the In-charge for <strong><%= wingLabel %></strong>.</div>
+</div>
+
+<div class="cards-grid">
+  <div class="stat-card">
+    <div class="stat-icon <%= reportSubmitted ? 'bg-green' : 'bg-red' %>"><%= reportSubmitted ? '✅' : '⏳' %></div>
+    <div><div class="stat-value"><%= reportSubmitted ? 'Submitted' : 'Not yet' %></div><div class="stat-label">Weekly Scrutiny Report (<%= rowCount %> row<%= rowCount === 1 ? '' : 's' %>)</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-purple">🔍</div>
+    <div><div class="stat-value"><%= obsCount %></div><div class="stat-label">Class Observations Logged This Week</div></div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <a href="/supervision/rotation" class="btn btn-purple">🎲 This Week's Rotation</a>
+  <a href="/supervision/report" class="btn btn-outline-purple">📋 Weekly Scrutiny Report</a>
+  <a href="/supervision/observations/new" class="btn btn-outline-purple">🔍 Log a Class Observation</a>
+  <a href="/supervision/observations" class="btn btn-outline-purple">📚 View Past Observations</a>
+</div>
+
+<% } else { %>
+
+<div class="cards-grid">
+  <div class="stat-card">
+    <div class="stat-icon <%= meeting && meeting.id ? 'bg-green' : 'bg-red' %>"><%= meeting && meeting.id ? '✅' : '⏳' %></div>
+    <div><div class="stat-value"><%= meeting && meeting.id ? 'Logged' : 'Not yet' %></div><div class="stat-label">Weekly Academic Meeting Minutes</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon bg-purple">🔍</div>
+    <div><div class="stat-value"><%= myObsCount %> / 3</div><div class="stat-label">Your Class Observations This Week</div></div>
+  </div>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>Wing Status This Week</h3></div>
+  <table>
+    <thead><tr><th>Wing</th><th>Weekly Scrutiny Report</th><th>Observations Logged</th><th></th></tr></thead>
+    <tbody>
+      <% overview.forEach(function(w) { %>
+      <tr>
+        <td><%= w.label %></td>
+        <td><span class="badge <%= w.submitted ? 'badge-green' : 'badge-red' %>"><%= w.submitted ? 'Submitted' : 'Not submitted' %></span></td>
+        <td><%= w.obsCount %></td>
+        <td><a href="/supervision/report?wing=<%= w.wing %>" class="btn btn-outline-purple btn-sm">View</a></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<div class="toolbar" style="margin-top:16px">
+  <a href="/supervision/observations/new" class="btn btn-purple">🔍 Log a Class Observation</a>
+  <a href="/supervision/meeting" class="btn btn-outline-purple">🗒️ Weekly Meeting Minutes</a>
+  <a href="/supervision/observations" class="btn btn-outline-purple">📚 All Observations</a>
+  <% if (role === 'admin') { %><a href="/supervision/incharges" class="btn btn-outline-purple">🔑 Manage In-charges</a><% } %>
+</div>
+
+<% } %>
+<%- include('../partials/footer') %>

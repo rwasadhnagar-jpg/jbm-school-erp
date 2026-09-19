@@ -1,0 +1,77 @@
+<%- include('../partials/header', { title: 'Weekly Rotation', activePage: 'supervision' }) %>
+<div class="page-header"><div><h1>🔄 Weekly Rotation</h1><div class="breadcrumb">Academic Supervision → <%= wingLabel %> → Weekly Rotation</div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">
+    <% if (mode === 'section') { %>
+    Every section in this group gets a visit once a week, assigned automatically and randomly — no choosing which class to see. If a section doesn't actually exist or the teacher is unavailable, use Skip.
+    <% } else { %>
+    Every teacher in this group gets observed once a week, assigned automatically and randomly — pick whichever of their classes you actually sat in on. If a teacher is unavailable that day, use Skip.
+    <% } %>
+  </div>
+</div>
+
+<div class="toolbar" style="flex-wrap:wrap;align-items:center">
+  <% if (canPickWing) { %>
+  <form method="GET" action="/supervision/rotation" style="display:inline-flex;gap:8px;align-items:center">
+    <input type="hidden" name="week" value="<%= weekStart %>">
+    <select name="wing" class="form-control form-control-sm" onchange="this.form.submit()" style="width:220px">
+      <% ALL_ROTATION_WINGS.forEach(function(w) { %>
+      <option value="<%= w %>" <%= w===wing?'selected':'' %>><%= WINGS[w].label %></option>
+      <% }) %>
+    </select>
+  </form>
+  <% } %>
+  <a href="/supervision/rotation?wing=<%= wing %>&week=<%= prevWeek %>" class="btn btn-outline-purple btn-sm">← Prev Week</a>
+  <strong style="margin:0 8px"><%= new Date(weekStart).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) %> – <%= new Date(nextWeek).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) %></strong>
+  <a href="/supervision/rotation?wing=<%= wing %>&week=<%= nextWeek %>" class="btn btn-outline-purple btn-sm">Next Week →</a>
+</div>
+
+<div class="table-container" style="overflow-x:auto;margin-top:12px">
+  <div class="table-header"><h3>This Week's <%= mode === 'section' ? 'Sections' : 'Teachers' %> (<%= rows.length %>)</h3></div>
+  <table>
+    <thead><tr><th>Planned Day</th><th><%= mode === 'section' ? 'Class / Section' : 'Teacher' %></th><th>Status</th><% if (canReassign) { %><th>Assigned To</th><% } %><th style="min-width:220px"></th></tr></thead>
+    <tbody>
+      <% if (rows.length) { rows.forEach(function(r) { %>
+      <tr>
+        <td><%= r.planned_date ? new Date(r.planned_date).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}) : '—' %></td>
+        <td><strong><%= mode === 'section' ? (r.class_name + ' - ' + r.section) : (r.teacher_first_name + ' ' + (r.teacher_last_name || '')) %></strong></td>
+        <td>
+          <% if (r.status === 'done') { %><span class="badge badge-green">✅ Done</span>
+          <% } else if (r.status === 'skipped') { %><span class="badge badge-red">Skipped</span>
+          <% } else if (r.isOverdue) { %><span class="badge badge-red">⚠️ Overdue</span>
+          <% } else { %><span class="badge badge-blue">Pending</span><% } %>
+          <% if (r.is_override) { %><div style="font-size:10px;color:#a15c00">spot-check reassigned</div><% } %>
+        </td>
+        <% if (canReassign) { %><td><%= r.assigned_to_name || '—' %></td><% } %>
+        <td>
+          <% if (r.status === 'pending' && r.isMine) { %>
+          <a href="/supervision/observations/new?wing=<%= wing %>&assignment_id=<%= r.id %>" class="btn btn-purple btn-sm">Visit &amp; Fill →</a>
+          <form method="POST" action="/supervision/rotation/<%= r.id %>/skip" style="display:inline" onsubmit="return confirm('Skip this <%= mode === 'section' ? 'section' : 'teacher' %> this week?')">
+            <input type="hidden" name="wing" value="<%= wing %>">
+            <button type="submit" class="btn btn-outline-purple btn-sm">Skip</button>
+          </form>
+          <% } %>
+          <% if (r.status === 'done' && r.observation_id) { %>
+          <a href="/supervision/observations/<%= r.observation_id %>" class="btn btn-outline-purple btn-sm">View</a>
+          <% } %>
+          <% if (canReassign && r.status === 'pending') { %>
+          <form method="POST" action="/supervision/rotation/<%= r.id %>/reassign" style="display:inline-flex;gap:4px;align-items:center;margin-left:6px">
+            <input type="hidden" name="wing" value="<%= wing %>">
+            <select name="assigned_to" class="form-control form-control-sm" style="width:140px">
+              <% incharges.forEach(function(i) { %>
+              <option value="<%= i.id %>" <%= i.id===r.assigned_to?'selected':'' %>><%= i.name %></option>
+              <% }) %>
+            </select>
+            <button type="submit" class="btn btn-outline-purple btn-sm">Reassign</button>
+          </form>
+          <% } %>
+        </td>
+      </tr>
+      <% }) } else { %>
+        <tr><td colspan="<%= canReassign ? 5 : 4 %>" class="no-data">Nothing scheduled yet — check back once the week starts, or no Incharge is assigned to this wing yet.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

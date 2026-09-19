@@ -24,7 +24,11 @@ router.get('/parent-login', (req, res) => {
 
 // ─── Staff/Admin Login POST ──────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  // Trim/lowercase defensively — a stray space or auto-capitalized first letter from a phone
+  // keyboard (typing or copy-pasting a long test email/password) would otherwise fail silently
+  // with the same generic "Invalid email or password" message as a genuinely wrong credential.
+  const email = (req.body.email || '').trim().toLowerCase();
+  const password = (req.body.password || '').trim();
   try {
     const [rows] = await db.query('SELECT * FROM users WHERE email = ? AND is_active = 1', [email]);
     if (!rows.length) {
@@ -37,7 +41,16 @@ router.post('/login', async (req, res) => {
       req.flash('error', 'Invalid email or password');
       return res.redirect('/login');
     }
-    req.session.user = { id: user.id, name: user.name, email: user.email, role: user.role, staff_id: user.staff_id };
+    // An incharge normally covers exactly one wing (users.wing), but can be granted extra wings
+    // (see supervision.js's user_wings table + "Manage In-charges") for the rare case of one
+    // person covering two — e.g. Pre-Primary and Sr Secondary. `wings` lists everything this login
+    // may switch between; `wing` (below) is just whichever one is currently active.
+    let wings = user.wing ? [user.wing] : [];
+    if (user.role === 'incharge') {
+      const [extra] = await db.query('SELECT wing FROM user_wings WHERE user_id=?', [user.id]);
+      extra.forEach(r => { if (!wings.includes(r.wing)) wings.push(r.wing); });
+    }
+    req.session.user = { id: user.id, name: user.name, email: user.email, role: user.role, staff_id: user.staff_id, wing: user.wing, wings };
     res.redirect('/dashboard');
   } catch (err) {
     console.error('LOGIN ERROR:', err.code, err.message);

@@ -1,0 +1,204 @@
+<%- include('../partials/header', { title: 'Class Observation Form', activePage: 'supervision' }) %>
+<div class="page-header"><div><h1>🔍 Class Observation Form</h1><div class="breadcrumb">Academic Supervision → <%= wingLabel %> → New Observation</div></div></div>
+
+<% if (justSaved) { %>
+<div class="dashboard-widget" style="margin-bottom:12px;border-left:4px solid #28a745">
+  <div class="widget-body">✅ Saved. <strong><%= doneToday %></strong> class<%= doneToday === 1 ? '' : 'es' %> logged for <%= today %> so far — ready for the next one.</div>
+</div>
+<% } else if (doneToday > 0) { %>
+<div class="dashboard-widget" style="margin-bottom:12px">
+  <div class="widget-body"><strong><%= doneToday %></strong> class<%= doneToday === 1 ? '' : 'es' %> logged for <%= today %> so far.</div>
+</div>
+<% } %>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">One form per class. Rate each of the 8 points <strong>1 (Poor) to 5 (Excellent)</strong> — use "Mark all as" to fill everything at once, then adjust the ones that were different.</div>
+</div>
+
+<form method="POST" action="/supervision/observations">
+  <% if (assignment) { %><input type="hidden" name="assignment_id" value="<%= assignment.id %>"><% } %>
+  <% if (canPickWing && !assignment) { %>
+  <div class="form-card">
+    <div class="form-card-header">🏫 Wing</div>
+    <div class="form-card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Wing <span class="required">*</span></label>
+          <select name="wing" class="form-control" required onchange="location.href='/supervision/observations/new?wing='+this.value+'&date=<%= today %>'">
+            <% Object.keys(WINGS).forEach(function(w) { %>
+            <option value="<%= w %>" <%= w === wing ? 'selected' : '' %>><%= WINGS[w].label %></option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } else { %>
+  <input type="hidden" name="wing" value="<%= wing %>">
+  <% } %>
+
+  <div class="form-card">
+    <div class="form-card-header">📋 Class Details</div>
+    <% if (assignment && assignment.class_id) { %>
+    <div class="widget-body" style="padding:10px 16px 0;font-size:12px;color:#777">This week's assigned visit — the class is fixed by the rotation, not chosen.</div>
+    <% } else if (assignment && assignment.teacher_id) { %>
+    <div class="widget-body" style="padding:10px 16px 0;font-size:12px;color:#777">This week's assigned visit — the teacher is fixed by the rotation; pick whichever of their classes you actually sat in on.</div>
+    <% } %>
+    <div class="form-card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Class / Section</label>
+          <% if (assignment && assignment.class_id) { %>
+          <input type="text" class="form-control" value="<%= assignment.class_name %> - <%= assignment.section %>" disabled>
+          <input type="hidden" name="class_id" value="<%= assignment.class_id %>">
+          <% } else { %>
+          <select name="class_id" class="form-control" autofocus>
+            <option value="">— select —</option>
+            <% classes.forEach(function(c) { %>
+            <option value="<%= c.id %>"><%= c.class_name %> - <%= c.section %></option>
+            <% }) %>
+          </select>
+          <% } %>
+        </div>
+        <div class="form-group">
+          <label>Teacher</label>
+          <% if (assignment && assignment.teacher_id) { %>
+          <input type="text" class="form-control" value="<%= assignment.teacher_first_name %> <%= assignment.teacher_last_name || '' %>" disabled>
+          <input type="hidden" name="teacher_id" value="<%= assignment.teacher_id %>">
+          <% } else { %>
+          <select name="teacher_id" class="form-control">
+            <option value="">— select —</option>
+            <% teachers.forEach(function(t) { %>
+            <option value="<%= t.id %>" <%= assignment && assignment.class_teacher_id === t.id ? 'selected' : '' %>><%= t.first_name %> <%= t.last_name || '' %></option>
+            <% }) %>
+          </select>
+          <input type="text" name="teacher_name_free" class="form-control" placeholder="or type name" style="margin-top:6px">
+          <% } %>
+        </div>
+        <div class="form-group"><label>Subject / Topic</label><input type="text" name="subject_topic" class="form-control"></div>
+        <div class="form-group"><label>Date <span class="required">*</span></label><input type="date" name="observation_date" class="form-control" value="<%= today %>" required></div>
+        <div class="form-group"><label>Period</label><input type="text" name="period" class="form-control" placeholder="e.g. 3rd period"></div>
+        <% if (wing !== 'primary' && wing !== 'pre_primary') { %>
+        <div class="form-group">
+          <label>Syllabus Position</label>
+          <select name="syllabus_position" class="form-control">
+            <option value="">— select —</option>
+            <option value="ahead">Ahead</option>
+            <option value="on_time">On time</option>
+            <option value="behind">Behind</option>
+          </select>
+        </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-container" style="overflow-x:auto">
+    <div class="table-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <h3>Rate These 8 Points <span class="required">*</span></h3>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#555">
+        Mark all as:
+        <button type="button" class="quick-fill-btn" data-rating="5">5</button>
+        <button type="button" class="quick-fill-btn" data-rating="4">4</button>
+        <button type="button" class="quick-fill-btn" data-rating="3">3</button>
+        <button type="button" class="quick-fill-btn" data-rating="2">2</button>
+        <button type="button" class="quick-fill-btn" data-rating="1">1</button>
+        <span style="color:#999">then fix any that differ</span>
+      </div>
+    </div>
+    <table class="points-table">
+      <thead><tr><th style="width:36px">#</th><th>Point</th><th style="width:170px">Rating</th><th style="min-width:180px">Remarks (optional)</th></tr></thead>
+      <tbody id="pointsBody">
+        <% points.forEach(function(p, i) { %>
+        <tr>
+          <td><%= i + 1 %></td>
+          <td>
+            <strong><%= p.label %></strong><input type="hidden" name="point_label" value="<%= p.label %>">
+            <% if (p.needsChildFlag) { %>
+            <div class="child-flag">
+              <input type="text" name="child_name" class="form-control form-control-sm" placeholder="Child's name (if any concern)">
+              <input type="text" name="child_reason" class="form-control form-control-sm" placeholder="Reason" style="margin-top:4px">
+            </div>
+            <% } else { %>
+            <input type="hidden" name="child_name" value="">
+            <input type="hidden" name="child_reason" value="">
+            <% } %>
+          </td>
+          <td>
+            <select name="rating" class="form-control form-control-sm point-rating" required>
+              <option value="">— select —</option>
+              <% ratingOptions.forEach(function(r) { %>
+              <option value="<%= r.value %>"><%= r.label %></option>
+              <% }) %>
+            </select>
+          </td>
+          <td><input type="text" name="point_remarks" class="form-control form-control-sm" placeholder="optional"></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <style>
+    .quick-fill-btn { border:1px solid var(--purple); background:#fff; color:var(--purple); border-radius:4px; padding:3px 10px; cursor:pointer; font-weight:600; min-width:28px; }
+    .quick-fill-btn:hover { background:var(--purple); color:#fff; }
+    .child-flag { margin-top:6px; max-width:260px; }
+    /* On narrow screens the default table{width:100%} squeezes the Rating column down to nothing
+       (just the arrow, no visible number) to force everything into the viewport. Give this table
+       a real minimum width instead so columns keep their intended size and the container's
+       existing overflow-x:auto scrolls horizontally, like the other wide tables in this app. */
+    .points-table { min-width: 640px; }
+  </style>
+  <script>
+    document.querySelectorAll('.quick-fill-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var rating = btn.getAttribute('data-rating');
+        document.querySelectorAll('.point-rating').forEach(function (sel) { sel.value = rating; });
+      });
+    });
+  </script>
+
+  <div class="form-card" style="margin-top:16px">
+    <div class="form-card-header">💬 Guidance &amp; Follow-up</div>
+    <div class="form-card-body">
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Guidance given to the teacher on the spot <span class="required" id="guidanceRequiredMark" style="display:none">*</span></label>
+          <textarea name="guidance_given" id="guidanceGiven" class="form-control" rows="2"></textarea>
+        </div>
+        <% if (wing !== 'primary' && wing !== 'pre_primary') { %>
+        <div class="form-group">
+          <label>Re-visit required within 10 days?</label>
+          <select name="revisit_required" id="revisitRequired" class="form-control">
+            <option value="">— select —</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var revisit = document.getElementById('revisitRequired');
+      var guidance = document.getElementById('guidanceGiven');
+      var mark = document.getElementById('guidanceRequiredMark');
+      if (!revisit || !guidance) return; // Primary/Pre-Primary wings have no revisit field — remarks stay optional there.
+      function sync() {
+        var needed = revisit.value === 'yes';
+        guidance.required = needed;
+        mark.style.display = needed ? '' : 'none';
+      }
+      revisit.addEventListener('change', sync);
+      sync();
+    })();
+  </script>
+
+  <div class="form-card"><div class="form-actions">
+    <button type="submit" class="btn btn-purple">💾 Save &amp; Next Class</button>
+    <a href="/supervision/observations" class="btn btn-outline-purple">✅ Done for now — view all</a>
+  </div></div>
+</form>
+<%- include('../partials/footer') %>

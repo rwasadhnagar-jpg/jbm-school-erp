@@ -1,85 +1,81 @@
 <%- include('../partials/header', { title: 'Monthly Review Entry', activePage: 'performance' }) %>
-<div class="page-header"><div><h1>📝 Monthly Review Entry</h1><div class="breadcrumb">Teacher Assessment → Monthly Review — <%= raterLabel %></div></div></div>
+<div class="page-header"><div><h1>📝 Monthly Review Entry</h1><div class="breadcrumb">Teacher Assessment → Monthly Review</div></div></div>
 
 <div class="dashboard-widget" style="margin-bottom:16px">
   <div class="widget-body">
-    Scoring as <strong><%= raterLabel %></strong>. Your entries are private — no other rater can see them. "Student Outcomes" pre-fills automatically from real marks data where available; you can override it if needed.
+    <% if (isIncharge) { %>
+    Scoring as Incharge, for your own wing's teachers. "Student Outcomes" pre-fills from real exam data, and several fields pre-fill from your own Academic Monitoring class observations of that teacher this month, where logged.
+    <% } else { %>
+    Reviewing/editing as <%= isChairman ? 'Admin' : 'Principal' %> — you can open and correct any teacher's entry, entered by their wing Incharge.
+    <% } %>
   </div>
 </div>
 
-<div class="toolbar">
+<% if (allDone) { %>
+<div class="dashboard-widget" style="margin-bottom:16px;border-left:4px solid #28a745">
+  <div class="widget-body">✅ Every teacher has been scored for this month. You can still revisit anyone below to adjust.</div>
+</div>
+<% } %>
+
+<div class="toolbar" style="flex-wrap:wrap">
   <form method="GET" action="/performance/monthly/entry" class="search-bar" style="flex-wrap:wrap">
     <select name="month" class="form-control form-control-sm" onchange="this.form.submit()" style="width:180px">
       <% months.forEach(function(m) { %>
       <option value="<%= m %>" <%= m===month?'selected':'' %>><%= new Date(m).toLocaleDateString('en-IN',{month:'long',year:'numeric'}) %></option>
       <% }) %>
     </select>
-    <% if (isChairman) { %>
-    <select name="rater" class="form-control form-control-sm" onchange="this.form.submit()" style="width:160px">
-      <option value="Principal" <%= raterLabel==='Principal'?'selected':'' %>>Principal</option>
-      <option value="Vice Principal" <%= raterLabel==='Vice Principal'?'selected':'' %>>Vice Principal</option>
-      <option value="Incharge" <%= raterLabel==='Incharge'?'selected':'' %>>Incharge</option>
+    <% if (canPickWing) { %>
+    <select name="wing" class="form-control form-control-sm" onchange="this.form.submit()" style="width:220px">
+      <option value="">All wings</option>
+      <% Object.keys(WINGS).forEach(function(w) { %>
+      <option value="<%= w %>" <%= pickedWing===w?'selected':'' %>><%= WINGS[w].label %></option>
+      <% }) %>
     </select>
     <% } %>
   </form>
 </div>
 
-<form method="POST" action="/performance/monthly/entry">
-  <input type="hidden" name="month" value="<%= month %>">
-  <% if (isChairman) { %><input type="hidden" name="rater" value="<%= raterLabel %>"><% } %>
-  <div class="table-container" style="overflow-x:auto">
-    <div class="table-header"><h3>Roster (<%= staffList.length %> teaching staff)</h3></div>
-    <table>
-      <thead>
-        <tr>
-          <th style="min-width:140px">Name</th>
-          <th style="width:80px">Attendance %</th>
-          <th style="width:70px">Late Arrivals</th>
-          <th style="width:70px">Syllabus (0-10)</th>
-          <th style="width:70px">Classroom Mgmt (0-10)</th>
-          <th style="width:70px">Homework (0-10)</th>
-          <th style="width:70px">Parent Complaints</th>
-          <th style="width:70px">Discipline Issues</th>
-          <th style="width:80px">Student Outcomes (0-10)</th>
-          <th style="width:70px">Parent Comm. (0-10)</th>
-          <th style="width:70px">Admin Compliance (0-10)</th>
-          <th style="width:70px">Co-curricular (0-10)</th>
-          <th style="width:70px">Prof. Dev. (0-10)</th>
-          <th style="width:70px">Behaviour (0-10)</th>
-          <th style="width:70px">Overall (0-10)</th>
-          <th style="min-width:160px">Notes</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% staffList.forEach(function(s) { const ex = s.existing || {}; %>
-        <tr>
-          <td><strong><%= s.first_name %> <%= s.last_name %></strong></td>
-          <td><input type="number" step="0.1" min="0" max="100" class="form-control form-control-sm" name="review[s<%= s.id %>][attendance_pct]" value="<%= ex.attendance_pct != null ? ex.attendance_pct : '' %>"></td>
-          <td><input type="number" step="1" min="0" class="form-control form-control-sm" name="review[s<%= s.id %>][late_arrivals]" value="<%= ex.late_arrivals != null ? ex.late_arrivals : 0 %>"></td>
-          <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm" name="review[s<%= s.id %>][syllabus_pace]" value="<%= ex.syllabus_pace != null ? ex.syllabus_pace : '' %>"></td>
-          <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm" name="review[s<%= s.id %>][classroom_mgmt]" value="<%= ex.classroom_mgmt != null ? ex.classroom_mgmt : '' %>"></td>
-          <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm" name="review[s<%= s.id %>][homework_correction]" value="<%= ex.homework_correction != null ? ex.homework_correction : '' %>"></td>
-          <td><input type="number" step="1" min="0" class="form-control form-control-sm" name="review[s<%= s.id %>][parent_complaints]" value="<%= ex.parent_complaints != null ? ex.parent_complaints : 0 %>"></td>
-          <td><input type="number" step="1" min="0" class="form-control form-control-sm" name="review[s<%= s.id %>][discipline_issues]" value="<%= ex.discipline_issues != null ? ex.discipline_issues : 0 %>"></td>
-          <td>
-            <input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm" name="review[s<%= s.id %>][student_outcomes_override]"
-              value="<%= ex.student_outcomes_override != null ? ex.student_outcomes_override : (s.outcomesAuto != null ? s.outcomesAuto : '') %>">
-            <% if (ex.student_outcomes_override == null && s.outcomesAuto != null) { %><div style="font-size:10px;color:#777">(auto)</div><% } %>
-            <% if (s.outcomesAuto == null && ex.student_outcomes_override == null) { %><div style="font-size:10px;color:#999">no exam data yet</div><% } %>
-          </td>
-          <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm" name="review[s<%= s.id %>][parent_comm]" value="<%= ex.parent_comm != null ? ex.parent_comm : '' %>"></td>
-          <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm" name="review[s<%= s.id %>][admin_compliance]" value="<%= ex.admin_compliance != null ? ex.admin_compliance : '' %>"></td>
-          <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm" name="review[s<%= s.id %>][cocurricular]" value="<%= ex.cocurricular != null ? ex.cocurricular : '' %>"></td>
-          <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm" name="review[s<%= s.id %>][professional_dev]" value="<%= ex.professional_dev != null ? ex.professional_dev : '' %>"></td>
-          <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm" name="review[s<%= s.id %>][behaviour_teamwork]" value="<%= ex.behaviour_teamwork != null ? ex.behaviour_teamwork : '' %>"></td>
-          <td><input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm" name="review[s<%= s.id %>][overall_holistic]" value="<%= ex.overall_holistic != null ? ex.overall_holistic : '' %>"></td>
-          <td><input type="text" class="form-control form-control-sm" name="review[s<%= s.id %>][notes]" value="<%= ex.notes != null ? ex.notes.replace(/\n/g,' ') : '' %>"></td>
-        </tr>
-        <% }) %>
-      </tbody>
-    </table>
-    <div class="form-actions"><button type="submit" class="btn btn-purple">💾 Save Monthly Reviews</button></div>
+<div class="cards-grid">
+  <div class="stat-card">
+    <div class="stat-icon bg-purple">📊</div>
+    <div><div class="stat-value"><%= doneCount %> / <%= totalCount %></div><div class="stat-label">Teachers Scored This Month</div></div>
   </div>
-</form>
+</div>
+
+<% const wingParam = pickedWing ? '&wing=' + encodeURIComponent(pickedWing) : ''; %>
+<div class="toolbar">
+  <% if (firstUnscoredId) { %>
+  <a href="/performance/monthly/entry/<%= firstUnscoredId %>?month=<%= month %><%= wingParam %>" class="btn btn-purple">▶️ Continue Scoring</a>
+  <% } else { %>
+  <a href="/performance/monthly/entry/<%= staffList[0] ? staffList[0].id : '' %>?month=<%= month %><%= wingParam %>" class="btn btn-outline-purple">Review / Adjust Scores</a>
+  <% } %>
+  <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#555;margin-left:10px">
+    <input type="checkbox" id="hideScored"> Show only not-yet-scored
+  </label>
+</div>
+
+<div class="table-container">
+  <div class="table-header"><h3>Roster (<%= totalCount %> teaching staff)</h3></div>
+  <table>
+    <thead><tr><th>Name</th><th style="width:120px">Status</th><th style="width:100px"></th></tr></thead>
+    <tbody id="rosterBody">
+      <% staffList.forEach(function(s) { %>
+      <tr data-scored="<%= s.scored ? '1' : '0' %>">
+        <td><%= s.first_name %> <%= s.last_name %></td>
+        <td><span class="badge <%= s.scored ? 'badge-green' : 'badge-red' %>"><%= s.scored ? 'Scored' : 'Not yet' %></span></td>
+        <td><a href="/performance/monthly/entry/<%= s.id %>?month=<%= month %><%= wingParam %>" class="btn btn-outline-purple btn-sm">Score →</a></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  document.getElementById('hideScored').addEventListener('change', function (e) {
+    document.querySelectorAll('#rosterBody tr').forEach(function (tr) {
+      tr.hidden = e.target.checked && tr.getAttribute('data-scored') === '1';
+    });
+  });
+</script>
 
 <%- include('../partials/footer') %>

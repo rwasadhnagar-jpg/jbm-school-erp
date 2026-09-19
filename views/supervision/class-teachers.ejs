@@ -1,0 +1,44 @@
+<%- include('../partials/header', { title: 'Class-Teacher Assignment', activePage: 'supervision' }) %>
+<div class="page-header"><div><h1>🏫 Class-Teacher Assignment</h1><div class="breadcrumb">Academic Supervision → Class-Teacher Assignment</div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">
+    Every real section should have one class teacher (or, for Middle/Secondary/Sr Secondary, whoever the primary subject teacher on record is). Assigning someone here also sets their wing to match — the same pairing used when the real roster was first set up. Removing a class teacher does not change that teacher's wing, in case they teach elsewhere too.
+  </div>
+</div>
+
+<div class="table-container" style="overflow-x:auto">
+  <div class="table-header"><h3>Sections (<%= classes.length %>)</h3></div>
+  <table>
+    <thead><tr><th>Wing</th><th>Class / Section</th><th style="min-width:220px">Class Teacher</th><th style="width:200px"></th></tr></thead>
+    <tbody>
+      <% classes.forEach(function(c) { %>
+      <tr>
+        <td><span class="badge badge-blue"><%= c.wing ? (WINGS[c.wing] ? WINGS[c.wing].label : c.wing) : '—' %></span></td>
+        <td><strong><%= c.class_name %> - <%= c.section %></strong></td>
+        <td>
+          <form method="POST" action="/supervision/class-teachers/<%= c.id %>/assign" style="display:inline-flex;gap:6px;align-items:center;width:100%">
+            <select name="staff_id" class="form-control form-control-sm">
+              <option value="">— none —</option>
+              <% teachers.forEach(function(t) { %>
+              <option value="<%= t.id %>" <%= c.class_teacher_id === t.id ? 'selected' : '' %>>
+                <%= t.first_name %> <%= t.last_name || '' %><%= t.wing && t.wing !== c.wing ? ' (currently ' + (WINGS[t.wing] ? WINGS[t.wing].label : t.wing) + ')' : '' %>
+              </option>
+              <% }) %>
+            </select>
+            <button type="submit" class="btn btn-outline-purple btn-sm">Save</button>
+          </form>
+        </td>
+        <td>
+          <% if (c.class_teacher_id) { %>
+          <form method="POST" action="/supervision/class-teachers/<%= c.id %>/remove" onsubmit="return confirm('Remove the class teacher from <%= c.class_name %> - <%= c.section %>?')">
+            <button type="submit" class="btn btn-outline-purple btn-sm">Remove</button>
+          </form>
+          <% } %>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<%- include('../partials/footer') %>

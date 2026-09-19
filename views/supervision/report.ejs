@@ -1,0 +1,139 @@
+<%- include('../partials/header', { title: 'Weekly Scrutiny Report', activePage: 'supervision' }) %>
+<div class="page-header"><div><h1>📋 Weekly Scrutiny Report</h1><div class="breadcrumb">Academic Supervision → <%= wingLabel %></div></div></div>
+
+<div class="dashboard-widget" style="margin-bottom:16px">
+  <div class="widget-body">One row per class visited, teacher observed, or notebooks checked. Keep it short — name the class, name the problem, and say what was done about it.</div>
+</div>
+
+<div class="toolbar" style="flex-wrap:wrap">
+  <% if (canPickWing) { %>
+  <form method="GET" action="/supervision/report" class="search-bar">
+    <input type="hidden" name="week" value="<%= weekStart %>">
+    <select name="wing" class="form-control form-control-sm" onchange="this.form.submit()" style="width:220px">
+      <% Object.keys(WINGS).forEach(function(w) { %>
+      <option value="<%= w %>" <%= w === wing ? 'selected' : '' %>><%= WINGS[w].label %></option>
+      <% }) %>
+    </select>
+  </form>
+  <% } %>
+  <a href="/supervision/report?week=<%= prevWeek %><%= canPickWing ? '&wing=' + wing : '' %>" class="btn btn-outline-purple btn-sm">← Previous Week</a>
+  <span style="align-self:center;font-size:13px;color:#555;padding:0 6px">Week of <%= weekStart %></span>
+  <a href="/supervision/report?week=<%= nextWeek %><%= canPickWing ? '&wing=' + wing : '' %>" class="btn btn-outline-purple btn-sm">Next Week →</a>
+</div>
+
+<form method="POST" action="/supervision/report" id="reportForm">
+  <input type="hidden" name="week_start_date" value="<%= weekStart %>">
+  <% if (canPickWing) { %><input type="hidden" name="wing" value="<%= wing %>"><% } %>
+
+  <div class="table-container" style="overflow-x:auto">
+    <div class="table-header"><h3>Classes Visited / Teachers Observed / Notebooks Checked</h3></div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:130px">Date</th>
+          <th style="min-width:150px">Class / Section</th>
+          <th style="min-width:180px">Teacher</th>
+          <th style="min-width:220px">Observation (teaching / notebook / discipline)</th>
+          <th style="min-width:220px">Action taken / to be taken</th>
+          <th style="width:36px"></th>
+        </tr>
+      </thead>
+      <tbody id="rowsBody">
+        <% rows.forEach(function(r) { %>
+        <tr>
+          <td><input type="date" name="visit_date" class="form-control form-control-sm" value="<%= r.visit_date || '' %>"></td>
+          <td>
+            <select name="class_id" class="form-control form-control-sm">
+              <option value="">— select —</option>
+              <% classes.forEach(function(c) { %>
+              <option value="<%= c.id %>" <%= String(r.class_id) === String(c.id) ? 'selected' : '' %>><%= c.class_name %> - <%= c.section %></option>
+              <% }) %>
+            </select>
+          </td>
+          <td>
+            <select name="teacher_id" class="form-control form-control-sm">
+              <option value="">— select —</option>
+              <% teachers.forEach(function(t) { %>
+              <option value="<%= t.id %>" <%= String(r.teacher_id) === String(t.id) ? 'selected' : '' %>><%= t.first_name %> <%= t.last_name || '' %></option>
+              <% }) %>
+            </select>
+            <input type="text" name="teacher_name_free" class="form-control form-control-sm" placeholder="or type name" value="<%= r.teacher_name_free || '' %>" style="margin-top:4px">
+          </td>
+          <td><textarea name="observation" class="form-control form-control-sm" rows="2"><%= r.observation || '' %></textarea></td>
+          <td><textarea name="action_taken" class="form-control form-control-sm" rows="2"><%= r.action_taken || '' %></textarea></td>
+          <td><button type="button" class="btn-remove-row" title="Remove row">✕</button></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <div style="padding:10px 16px">
+      <button type="button" id="addRowBtn" class="btn btn-outline-purple btn-sm">+ Add Row</button>
+    </div>
+  </div>
+
+  <div class="form-card" style="margin-top:16px">
+    <div class="form-card-header">⚠️ Matters Requiring Management Attention</div>
+    <div class="form-card-body">
+      <textarea name="matters_for_management" class="form-control" rows="3" placeholder="List anything that needs the Management's attention this week..."><%= report.matters_for_management || '' %></textarea>
+    </div>
+  </div>
+
+  <div class="form-card"><div class="form-actions"><button type="submit" class="btn btn-purple">💾 Save Weekly Report</button></div></div>
+</form>
+
+<template id="rowTemplate">
+  <tr>
+    <td><input type="date" name="visit_date" class="form-control form-control-sm"></td>
+    <td>
+      <select name="class_id" class="form-control form-control-sm">
+        <option value="">— select —</option>
+        <% classes.forEach(function(c) { %>
+        <option value="<%= c.id %>"><%= c.class_name %> - <%= c.section %></option>
+        <% }) %>
+      </select>
+    </td>
+    <td>
+      <select name="teacher_id" class="form-control form-control-sm">
+        <option value="">— select —</option>
+        <% teachers.forEach(function(t) { %>
+        <option value="<%= t.id %>"><%= t.first_name %> <%= t.last_name || '' %></option>
+        <% }) %>
+      </select>
+      <input type="text" name="teacher_name_free" class="form-control form-control-sm" placeholder="or type name" style="margin-top:4px">
+    </td>
+    <td><textarea name="observation" class="form-control form-control-sm" rows="2"></textarea></td>
+    <td><textarea name="action_taken" class="form-control form-control-sm" rows="2"></textarea></td>
+    <td><button type="button" class="btn-remove-row" title="Remove row">✕</button></td>
+  </tr>
+</template>
+
+<style>
+  .btn-remove-row { background:#f8d7da; color:#721c24; border:none; border-radius:4px; padding:5px 9px; cursor:pointer; }
+  .btn-remove-row:hover { background:#f1b0b7; }
+</style>
+
+<script>
+  (function () {
+    var rowsBody = document.getElementById('rowsBody');
+    var template = document.getElementById('rowTemplate');
+    var todayStr = <%- JSON.stringify(today) %>;
+
+    function addRow() {
+      var clone = template.content.cloneNode(true);
+      var dateInput = clone.querySelector('input[name="visit_date"]');
+      if (dateInput) dateInput.value = todayStr;
+      rowsBody.appendChild(clone);
+    }
+
+    document.getElementById('addRowBtn').addEventListener('click', addRow);
+    rowsBody.addEventListener('click', function (e) {
+      if (e.target.classList.contains('btn-remove-row')) {
+        e.target.closest('tr').remove();
+      }
+    });
+
+    if (rowsBody.children.length === 0) addRow();
+  })();
+</script>
+
+<%- include('../partials/footer') %>

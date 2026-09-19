@@ -3,24 +3,30 @@
 // in Settings retroactively re-shapes every displayed past score — matching the spreadsheet's
 // own live-recalculation behaviour.
 
-const RATERS = ['Principal', 'Vice Principal', 'Incharge'];
-
+// Month Score Composition weights, rebalanced 2026-09-15 to make room for the 4 new weekly-form
+// checklist items (punctuality/dress code/conduct/lesson prep) — the original 11 fields' relative
+// proportions are preserved, just scaled down by 0.8 so the group still sums to 1.0 with the 4
+// new fields added at 0.05 each. Admin can rebalance further in Settings any time.
 const WEIGHT_DEFAULTS = {
   perf_w_performance_annual: 0.5,
   perf_w_loyalty: 0.2,
   perf_w_role_resp: 0.2,
   perf_w_behaviour_annual: 0.1,
-  perf_w_attendance: 0.1,
-  perf_w_syllabus: 0.1,
-  perf_w_classroom: 0.1,
-  perf_w_homework: 0.05,
-  perf_w_outcomes: 0.15,
-  perf_w_parentcomm: 0.1,
-  perf_w_admincompliance: 0.1,
-  perf_w_cocurricular: 0.05,
-  perf_w_profdev: 0.1,
-  perf_w_behaviour_month: 0.1,
-  perf_w_holistic: 0.05,
+  perf_w_attendance: 0.08,
+  perf_w_syllabus: 0.08,
+  perf_w_classroom: 0.08,
+  perf_w_homework: 0.04,
+  perf_w_outcomes: 0.12,
+  perf_w_parentcomm: 0.08,
+  perf_w_admincompliance: 0.08,
+  perf_w_cocurricular: 0.04,
+  perf_w_profdev: 0.08,
+  perf_w_behaviour_month: 0.08,
+  perf_w_holistic: 0.04,
+  perf_w_punctuality: 0.05,
+  perf_w_dresscode: 0.05,
+  perf_w_conduct: 0.05,
+  perf_w_lessonprep: 0.05,
   perf_budget_total: 0,
   perf_threshold_top: 8,
   perf_threshold_avg: 6,
@@ -30,6 +36,7 @@ const MONTH_WEIGHT_TOTAL_KEYS = [
   'perf_w_attendance', 'perf_w_syllabus', 'perf_w_classroom', 'perf_w_homework', 'perf_w_outcomes',
   'perf_w_parentcomm', 'perf_w_admincompliance', 'perf_w_cocurricular', 'perf_w_profdev',
   'perf_w_behaviour_month', 'perf_w_holistic',
+  'perf_w_punctuality', 'perf_w_dresscode', 'perf_w_conduct', 'perf_w_lessonprep',
 ];
 
 const ANNUAL_WEIGHT_TOTAL_KEYS = [
@@ -67,6 +74,7 @@ function monthScore(row, weights) {
     row.syllabus_pace, row.classroom_mgmt, row.homework_correction, outcomes,
     row.parent_comm, row.admin_compliance, row.cocurricular, row.professional_dev,
     row.behaviour_teamwork, row.overall_holistic,
+    row.punctuality_rating, row.dress_code_rating, row.overall_conduct_rating, row.lesson_prep_rating,
   ];
   const anyScored = (row.attendance_pct !== null && row.attendance_pct !== undefined && row.attendance_pct !== '')
     || scoredFields.some(f => f !== null && f !== undefined && f !== '');
@@ -83,7 +91,11 @@ function monthScore(row, weights) {
     + n(row.cocurricular) * weights.perf_w_cocurricular
     + n(row.professional_dev) * weights.perf_w_profdev
     + n(row.behaviour_teamwork) * weights.perf_w_behaviour_month
-    + n(row.overall_holistic) * weights.perf_w_holistic;
+    + n(row.overall_holistic) * weights.perf_w_holistic
+    + n(row.punctuality_rating) * weights.perf_w_punctuality
+    + n(row.dress_code_rating) * weights.perf_w_dresscode
+    + n(row.overall_conduct_rating) * weights.perf_w_conduct
+    + n(row.lesson_prep_rating) * weights.perf_w_lessonprep;
 
   const penalty = Math.min(2, n(row.late_arrivals) * 0.3 + n(row.parent_complaints) * 0.5 + n(row.discipline_issues) * 0.5);
   score -= penalty;
@@ -127,38 +139,142 @@ async function computeStudentOutcomesAuto(db, staffId, monthDateStr) {
   }
 }
 
-// Combined Month Score for one staff/month = average of whichever raters scored that month.
-// Replaces the spreadsheet's "only Principal counts" rule, since there's no single official
-// rater any more in the blind multi-rater model.
-function combineMonthScores(raterRows, weights) {
-  const scores = raterRows.map(r => monthScore(r, weights)).filter(s => s !== null);
-  if (!scores.length) return null;
-  return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10;
+// Auto-suggests Attendance % from the weekly staff-attendance summaries entered in Academic
+// Monitoring (routes/supervision.js, staff_weekly_attendance — a manual weekly total, not a daily
+// attendance system: working days, leaves taken, leaves clubbed with a holiday, all typed in by
+// admin/wing-incharge once a week). Unlike computeObservationAutoScores, this is NOT scoped to one
+// rater — attendance is a fact, not an opinion, so every rater (Principal/VP/Incharge) reviewing
+// the same teacher/month sees the same auto-filled number. A week is attributed to the month
+// containing its Monday (week_start_date), matching how the weekly screens already group weeks.
+async function computeAttendanceAuto(db, staffId, monthDateStr) {
+  try {
+    const [rows] = await db.query(
+      `SELECT working_days, leaves_taken, late_arrivals, leaves_clubbed_with_holiday
+       FROM staff_weekly_attendance
+       WHERE staff_id = ? AND DATE_FORMAT(week_start_date, '%Y-%m') = DATE_FORMAT(?, '%Y-%m')`,
+      [staffId, monthDateStr]
+    );
+    if (!rows.length) return null;
+    let totalWorking = 0, totalLeaves = 0, totalLate = 0, totalClubbed = 0, anyWorkingDays = false;
+    for (const r of rows) {
+      if (r.working_days !== null) { totalWorking += Number(r.working_days); anyWorkingDays = true; }
+      totalLeaves += Number(r.leaves_taken) || 0;
+      totalLate += Number(r.late_arrivals) || 0;
+      totalClubbed += Number(r.leaves_clubbed_with_holiday) || 0;
+    }
+    const attendancePct = anyWorkingDays && totalWorking > 0
+      ? Math.max(0, Math.min(100, Math.round(((totalWorking - totalLeaves) / totalWorking) * 1000) / 10))
+      : null;
+    return { attendancePct, totalWorking, totalLeaves, totalLate, totalClubbed, weeksLogged: rows.length };
+  } catch (e) {
+    return null;
+  }
 }
 
+// Auto-suggests 4 monthly-review fields from that SAME rater's own Academic Monitoring class
+// observations of this teacher this month (routes/supervision.js). Scoped to observed_by so each
+// rater's blind row only ever reflects their own observations, never another rater's.
+// Point labels updated 2026-09-15 for the rebuilt 8-point in-class checklist (see
+// OBSERVATION_POINTS in routes/supervision.js) — mapping onto 4 of the review fields (1-5 scale ->
+// 0-10 scale, so x2):
+//   Syllabus Pace                                           -> syllabus_pace
+//   Classroom Control & Discipline                          -> classroom_mgmt
+//   avg(Notebook Checking, Homework / Assignment given)     -> homework_correction
+//   avg(Teaching Pedagogy, Student Engagement, Student
+//       Response, English Communication)                    -> overall_holistic
+// Returns null if that rater logged no observations of this teacher this month.
+async function computeObservationAutoScores(db, staffId, monthDateStr, observerId) {
+  try {
+    if (!observerId) return null;
+    const [rows] = await db.query(
+      `SELECT o.id AS observation_id, p.point_label, p.rating
+       FROM supervision_observations o
+       JOIN supervision_observation_points p ON p.observation_id = o.id
+       WHERE o.teacher_id = ? AND o.observed_by = ?
+         AND DATE_FORMAT(o.observation_date, '%Y-%m') = DATE_FORMAT(?, '%Y-%m')
+         AND p.rating IS NOT NULL`,
+      [staffId, observerId, monthDateStr]
+    );
+    if (!rows.length) return null;
+
+    const byLabel = {};
+    const observationIds = new Set();
+    for (const r of rows) {
+      observationIds.add(r.observation_id);
+      (byLabel[r.point_label] = byLabel[r.point_label] || []).push(Number(r.rating));
+    }
+    const avg = (arr) => (arr && arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+    const toTen = (v) => (v === null ? null : Math.round(v * 2 * 10) / 10);
+
+    const prep = avg(byLabel['Syllabus Pace']);
+    const classroom = avg(byLabel['Classroom Control & Discipline']);
+    const followupParts = [avg(byLabel['Notebook Checking']), avg(byLabel['Homework / Assignment given'])].filter((v) => v !== null);
+    const followup = followupParts.length ? followupParts.reduce((a, b) => a + b, 0) / followupParts.length : null;
+    const holisticParts = [
+      avg(byLabel['Teaching Pedagogy']),
+      avg(byLabel['Student Engagement']),
+      avg(byLabel['Student Response']),
+      avg(byLabel['English Communication']),
+    ].filter((v) => v !== null);
+    const holistic = holisticParts.length ? holisticParts.reduce((a, b) => a + b, 0) / holisticParts.length : null;
+
+    return {
+      syllabus_pace: toTen(prep),
+      classroom_mgmt: toTen(classroom),
+      homework_correction: toTen(followup),
+      overall_holistic: toTen(holistic),
+      observationCount: observationIds.size,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+// Auto-suggests the 4 weekly-form checklist fields (Punctuality, Dress Code, Overall Conduct,
+// Lesson Preparation) by averaging that month's weekly entries from staff_weekly_attendance.
+// NOT rater-scoped — like attendance, these are entered once a week (not per-rater), so every
+// rater/reviewer sees the same auto-filled numbers. 1-5 scale -> 0-10, same x2 convention as the
+// in-class observation auto-fill.
+async function computeWeeklyChecklistAuto(db, staffId, monthDateStr) {
+  try {
+    const [rows] = await db.query(
+      `SELECT punctuality_rating, dress_code_rating, overall_conduct_rating, lesson_prep_rating
+       FROM staff_weekly_attendance
+       WHERE staff_id = ? AND DATE_FORMAT(week_start_date, '%Y-%m') = DATE_FORMAT(?, '%Y-%m')`,
+      [staffId, monthDateStr]
+    );
+    if (!rows.length) return null;
+    const avg = (key) => {
+      const vals = rows.map(r => r[key]).filter(v => v !== null && v !== undefined).map(Number);
+      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    };
+    const toTen = (v) => (v === null ? null : Math.round(v * 2 * 10) / 10);
+    return {
+      punctuality_rating: toTen(avg('punctuality_rating')),
+      dress_code_rating: toTen(avg('dress_code_rating')),
+      overall_conduct_rating: toTen(avg('overall_conduct_rating')),
+      lesson_prep_rating: toTen(avg('lesson_prep_rating')),
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+// One row per staff/month now (Incharge enters, Principal/Admin may edit — no more blind
+// multi-rater averaging), so a month's score is just monthScore() of that single row.
 async function computeAnnualSummary(db, staff, academicYearId, weights) {
   const [reviewRows] = await db.query(
-    'SELECT * FROM performance_monthly_reviews WHERE staff_id=? AND academic_year_id=?',
+    'SELECT * FROM performance_monthly_reviews WHERE staff_id=? AND academic_year_id=? ORDER BY month_date',
     [staff.id, academicYearId]
   );
-  const byMonth = {};
-  for (const r of reviewRows) {
-    if (!byMonth[r.month_date]) byMonth[r.month_date] = [];
-    byMonth[r.month_date].push(r);
-  }
 
   const monthCombined = [];
-  for (const [month, raterRows] of Object.entries(byMonth)) {
-    const combined = combineMonthScores(raterRows, weights);
+  for (const row of reviewRows) {
+    const combined = monthScore(row, weights);
     if (combined !== null) {
-      monthCombined.push({
-        month_date: month,
-        combined,
-        raterScores: raterRows.map(r => ({ rater: r.rater, score: monthScore(r, weights) })),
-      });
+      monthCombined.push({ month_date: row.month_date, combined, enteredBy: row.entered_by });
     }
   }
-  monthCombined.sort((a, b) => a.month_date.localeCompare(b.month_date));
 
   const monthsLogged = monthCombined.length;
   const annualPerf = monthsLogged
@@ -175,12 +291,8 @@ async function computeAnnualSummary(db, staff, academicYearId, weights) {
   }
   const loyalty = years !== null ? Math.min(10, Math.round(years * 0.7 * 10) / 10) : null;
 
-  let behSum = 0, behCount = 0;
-  for (const raterRows of Object.values(byMonth)) {
-    const vals = raterRows.map(r => r.behaviour_teamwork).filter(v => v !== null && v !== undefined).map(Number);
-    if (vals.length) { behSum += vals.reduce((a, b) => a + b, 0) / vals.length; behCount++; }
-  }
-  const behaviour = behCount ? Math.round((behSum / behCount) * 10) / 10 : null;
+  const behVals = reviewRows.map(r => r.behaviour_teamwork).filter(v => v !== null && v !== undefined).map(Number);
+  const behaviour = behVals.length ? Math.round((behVals.reduce((a, b) => a + b, 0) / behVals.length) * 10) / 10 : null;
 
   const [[override]] = await db.query(
     'SELECT role_responsibility_score FROM performance_annual_overrides WHERE staff_id=? AND academic_year_id=?',
@@ -223,14 +335,15 @@ function recommendedAction(summary) {
 }
 
 module.exports = {
-  RATERS,
   WEIGHT_DEFAULTS,
   MONTH_WEIGHT_TOTAL_KEYS,
   ANNUAL_WEIGHT_TOTAL_KEYS,
   getWeights,
   monthScore,
-  combineMonthScores,
   computeStudentOutcomesAuto,
+  computeObservationAutoScores,
+  computeAttendanceAuto,
+  computeWeeklyChecklistAuto,
   computeAnnualSummary,
   proposedIncrement,
   recommendedAction,
