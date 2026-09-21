@@ -58,6 +58,12 @@
   <a href="/supervision/attendance?week=<%= nextWeek %><%= wingFilter ? '&wing=' + wingFilter : '' %>" class="btn btn-outline-purple btn-sm">Next Week →</a>
 </div>
 
+<div class="dashboard-widget" style="margin-bottom:12px;font-size:12px;color:#555;border-left:4px solid #6f42c1">
+  <strong>Saturday entry — the one place these are filled.</strong> Working days default to 6 (Mon–Sat).
+  Attendance %, late comings, discipline issues and the four ratings feed straight into each teacher's monthly review
+  (read-only there), counted in the month this Saturday falls in.
+</div>
+
 <form method="POST" action="/supervision/attendance">
   <input type="hidden" name="week_start_date" value="<%= weekStart %>">
   <% if (wingFilter) { %><input type="hidden" name="wing" value="<%= wingFilter %>"><% } %>
@@ -72,6 +78,7 @@
           <th style="width:110px">Working Days</th>
           <th style="width:100px">Leaves Taken</th>
           <th style="width:100px">Late Comings</th>
+          <th style="width:100px">Discipline Issues</th>
           <th style="width:140px">Clubbed with Holiday</th>
           <th style="width:90px">Punctuality</th>
           <th style="width:90px">Dress Code</th>
@@ -81,7 +88,7 @@
       </thead>
       <tbody id="staffRows">
         <% if (!staffList.length) { %>
-        <tr><td colspan="11" class="no-data">No staff match this filter.</td></tr>
+        <tr><td colspan="12" class="no-data">No staff match this filter.</td></tr>
         <% } %>
         <% staffList.forEach(function(s) { const ex = s.existing || {}; const isMine = role === 'incharge' && s.wing === myOwnWing; %>
         <tr class="staff-row" data-checked="<%= (role !== 'incharge' || isMine) ? '1' : '0' %>">
@@ -106,10 +113,11 @@
             </select>
           </td>
           <% } %>
-          <td><input type="number" min="0" max="7" class="form-control form-control-sm attend-field" name="working_days[s<%= s.id %>]" value="<%= ex.working_days != null ? ex.working_days : '' %>"></td>
-          <td><input type="number" min="0" max="7" class="form-control form-control-sm attend-field" name="leaves_taken[s<%= s.id %>]" value="<%= ex.leaves_taken != null ? ex.leaves_taken : 0 %>"></td>
-          <td><input type="number" min="0" max="7" class="form-control form-control-sm attend-field" name="late_arrivals[s<%= s.id %>]" value="<%= ex.late_arrivals != null ? ex.late_arrivals : 0 %>"></td>
-          <td><input type="number" min="0" max="7" class="form-control form-control-sm attend-field" name="leaves_clubbed[s<%= s.id %>]" value="<%= ex.leaves_clubbed_with_holiday != null ? ex.leaves_clubbed_with_holiday : 0 %>"></td>
+          <td><input type="number" min="0" max="6" class="form-control form-control-sm attend-field" name="working_days[s<%= s.id %>]" value="<%= ex.working_days != null ? ex.working_days : 6 %>"></td>
+          <td><input type="number" min="0" max="6" class="form-control form-control-sm attend-field" name="leaves_taken[s<%= s.id %>]" value="<%= ex.leaves_taken != null ? ex.leaves_taken : 0 %>"></td>
+          <td><input type="number" min="0" max="6" class="form-control form-control-sm attend-field" name="late_arrivals[s<%= s.id %>]" value="<%= ex.late_arrivals != null ? ex.late_arrivals : 0 %>"></td>
+          <td><input type="number" min="0" max="20" class="form-control form-control-sm attend-field" name="discipline_issues[s<%= s.id %>]" value="<%= ex.discipline_issues != null ? ex.discipline_issues : 0 %>"></td>
+          <td><input type="number" min="0" max="6" class="form-control form-control-sm attend-field" name="leaves_clubbed[s<%= s.id %>]" value="<%= ex.leaves_clubbed_with_holiday != null ? ex.leaves_clubbed_with_holiday : 0 %>"></td>
           <td>
             <select class="form-control form-control-sm attend-field" name="punctuality_rating[s<%= s.id %>]">
               <option value="">—</option>

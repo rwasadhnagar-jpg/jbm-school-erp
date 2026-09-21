@@ -11,6 +11,7 @@ try { PDFDocument = require('pdfkit'); } catch (e) { console.error('pdfkit not a
 const {
   WEIGHT_DEFAULTS, getWeights, monthScore, computeStudentOutcomesAuto,
   computeObservationAutoScores, computeAttendanceAuto, computeWeeklyChecklistAuto,
+  computeMonthlyCountsAuto, syncMonthlyFromWeekly, WEEK_WORKING_DAYS,
   computeAnnualSummary, proposedIncrement, recommendedAction,
 } = require('../utils/performanceCalc');
 const { WINGS, wingMembershipClause } = require('./supervision');
@@ -444,11 +445,12 @@ router.get('/monthly/entry/:staffId', requireScorerOrAdmin, async (req, res) => 
     const obsAuto = isChairman(req) ? null : await computeObservationAutoScores(db, staff.id, month, req.session.user.id);
     const attendanceAuto = await computeAttendanceAuto(db, staff.id, month);
     const weeklyAuto = await computeWeeklyChecklistAuto(db, staff.id, month);
+    const countsAuto = await computeMonthlyCountsAuto(db, staff.id, month);
 
     res.render('performance/monthly-entry-single', {
       title: 'Monthly Review Entry', activePage: 'performance',
       staff, months, month, isChairman: isChairman(req), isIncharge: isIncharge(req),
-      existing: existing || {}, outcomesAuto, obsAuto, attendanceAuto, weeklyAuto,
+      existing: existing || {}, outcomesAuto, obsAuto, attendanceAuto, weeklyAuto, countsAuto,
       position: position + 1, totalCount: staffOrder.length, prevStaff, nextStaff,
       justSaved: req.query.saved === '1',
     });
@@ -471,7 +473,25 @@ router.post('/monthly/entry/:staffId', requireScorerOrAdmin, async (req, res) =>
       );
       if (!staff) throw new Error('You do not have access to this teacher');
     }
-    const r = req.body;
+    const r = Object.assign({}, req.body);
+    // Attendance %, late arrivals, discipline issues and the four Saturday checklist ratings are
+    // NOT typed here any more — they come from the weekly Saturday entry (+ memos), calculated at
+    // save time so this row can never disagree with Staff Attendance. Where no Saturday entry
+    // exists yet, whatever was already stored is kept rather than blanked.
+    const [[prev]] = await db.query('SELECT * FROM performance_monthly_reviews WHERE staff_id=? AND month_date=?', [staffId, month]);
+    const [attAuto, wkAuto, countsAuto] = await Promise.all([
+      computeAttendanceAuto(db, staffId, month),
+      computeWeeklyChecklistAuto(db, staffId, month),
+      computeMonthlyCountsAuto(db, staffId, month),
+    ]);
+    const keep = (auto, key) => (auto !== null && auto !== undefined ? auto : (prev && prev[key] !== undefined ? prev[key] : null));
+    r.attendance_pct = keep(attAuto ? attAuto.attendancePct : null, 'attendance_pct');
+    r.late_arrivals = countsAuto.late;
+    r.discipline_issues = countsAuto.discipline;
+    r.punctuality_rating = keep(wkAuto ? wkAuto.punctuality_rating : null, 'punctuality_rating');
+    r.dress_code_rating = keep(wkAuto ? wkAuto.dress_code_rating : null, 'dress_code_rating');
+    r.overall_conduct_rating = keep(wkAuto ? wkAuto.overall_conduct_rating : null, 'overall_conduct_rating');
+    r.lesson_prep_rating = keep(wkAuto ? wkAuto.lesson_prep_rating : null, 'lesson_prep_rating');
     // Incharge entering/updating their own row stamps submitted_at (their submission); Principal/
     // Admin editing it instead stamps reviewed_by/reviewed_at as a review marker — never shown in
     // the Incharge's own UI, just an internal record of who last checked it.
@@ -500,11 +520,14 @@ router.post('/monthly/entry/:staffId', requireScorerOrAdmin, async (req, res) =>
          reviewed_by=IF(VALUES(reviewed_by) IS NULL, reviewed_by, VALUES(reviewed_by)),
          reviewed_at=IF(VALUES(reviewed_at) IS NULL, reviewed_at, VALUES(reviewed_at))`,
       [staffId, month, ACADEMIC_YEAR_ID,
-       r.attendance_pct || null, r.late_arrivals || 0, r.syllabus_pace || null,
+       r.attendance_pct != null && r.attendance_pct !== '' ? r.attendance_pct : null, r.late_arrivals || 0, r.syllabus_pace || null,
        r.classroom_mgmt || null, r.homework_correction || null, r.parent_complaints || 0, r.discipline_issues || 0,
        r.student_outcomes_override || null, r.parent_comm || null, r.admin_compliance || null,
        r.cocurricular || null, r.professional_dev || null, r.behaviour_teamwork || null, r.overall_holistic || null,
-       r.punctuality_rating || null, r.dress_code_rating || null, r.overall_conduct_rating || null, r.lesson_prep_rating || null,
+       r.punctuality_rating != null && r.punctuality_rating !== '' ? r.punctuality_rating : null,
+       r.dress_code_rating != null && r.dress_code_rating !== '' ? r.dress_code_rating : null,
+       r.overall_conduct_rating != null && r.overall_conduct_rating !== '' ? r.overall_conduct_rating : null,
+       r.lesson_prep_rating != null && r.lesson_prep_rating !== '' ? r.lesson_prep_rating : null,
        r.notes || null,
        isReview ? null : req.session.user.id, isReview ? null : new Date(),
        isReview ? req.session.user.id : null, isReview ? new Date() : null]
@@ -585,16 +608,10 @@ router.post('/memos/add', requireAdminOrPrincipal, async (req, res) => {
        VALUES (?,?,?) ON DUPLICATE KEY UPDATE staff_id=staff_id`,
       [staff_id, monthBucket, ACADEMIC_YEAR_ID]
     );
-    if (category === 'Discipline') {
-      await db.query(
-        `UPDATE performance_monthly_reviews SET discipline_issues=discipline_issues+1 WHERE staff_id=? AND month_date=?`,
-        [staff_id, monthBucket]
-      );
-    } else if (category === 'Punctuality') {
-      await db.query(
-        `UPDATE performance_monthly_reviews SET late_arrivals=late_arrivals+1 WHERE staff_id=? AND month_date=?`,
-        [staff_id, monthBucket]
-      );
+    if (category === 'Discipline' || category === 'Punctuality') {
+      // Discipline/Punctuality memos count toward the month's discipline/late totals alongside the
+      // Saturday sheets — recomputed rather than bumped by 1, so the two sources can't drift.
+      await syncMonthlyFromWeekly(db, staff_id, monthBucket);
     } else if (category === 'Academic Non-Performance') {
       await db.query(
         `UPDATE performance_monthly_reviews SET academic_flags=academic_flags+1,
@@ -1057,7 +1074,10 @@ async function buildPulseData(db, weights) {
        FROM staff_weekly_attendance WHERE week_start_date=?`, [mondayStr]
     );
     let attPctVals = [];
-    attRows.forEach(r => { if (r.working_days) attPctVals.push(Math.max(0, Math.min(100, ((r.working_days - (r.leaves_taken || 0)) / r.working_days) * 100))); });
+    attRows.forEach(r => {
+      const days = r.working_days != null ? Number(r.working_days) : WEEK_WORKING_DAYS; // blank = a normal Mon-Sat week
+      if (days) attPctVals.push(Math.max(0, Math.min(100, ((days - (r.leaves_taken || 0)) / days) * 100)));
+    });
     const avgAttendance = pulseRound1(pulseAvg(attPctVals));
     const [[memoWeek]] = await db.query(
       'SELECT COUNT(*) cnt FROM performance_memos WHERE memo_date BETWEEN ? AND ?', [mondayStr, weekEndStr]

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const bcrypt = require('bcryptjs');
-const { computeAttendanceAuto } = require('../utils/performanceCalc');
+const { computeAttendanceAuto, syncMonthlyFromWeekly } = require('../utils/performanceCalc');
 
 const ACADEMIC_YEAR_ID = 1;
 
@@ -100,6 +100,10 @@ function wingMembershipClause(col, wingCol) {
     await db.query('ALTER TABLE staff_weekly_attendance ADD COLUMN IF NOT EXISTS dress_code_rating DECIMAL(3,1) DEFAULT NULL');
     await db.query('ALTER TABLE staff_weekly_attendance ADD COLUMN IF NOT EXISTS overall_conduct_rating DECIMAL(3,1) DEFAULT NULL');
     await db.query('ALTER TABLE staff_weekly_attendance ADD COLUMN IF NOT EXISTS lesson_prep_rating DECIMAL(3,1) DEFAULT NULL');
+    // Discipline incidents that week (2026-09-21) — moved off the monthly form so every Saturday
+    // item (attendance, late, discipline, punctuality, dress code, conduct, lesson prep) is entered
+    // in this one place and the monthly review just reads it.
+    await db.query('ALTER TABLE staff_weekly_attendance ADD COLUMN IF NOT EXISTS discipline_issues INT DEFAULT 0');
 
     await db.query(`CREATE TABLE IF NOT EXISTS supervision_weekly_reports (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -995,24 +999,29 @@ router.post('/attendance', requireAdminOrIncharge, async (req, res) => {
       const dr = req.body.dress_code_rating && req.body.dress_code_rating['s' + s.id];
       const cr = req.body.overall_conduct_rating && req.body.overall_conduct_rating['s' + s.id];
       const lr = req.body.lesson_prep_rating && req.body.lesson_prep_rating['s' + s.id];
+      const di = req.body.discipline_issues && req.body.discipline_issues['s' + s.id];
       const hasAny = (wd !== undefined && wd !== '') || (lt !== undefined && lt !== '') || (la !== undefined && la !== '')
         || (lc !== undefined && lc !== '') || (pr !== undefined && pr !== '') || (dr !== undefined && dr !== '')
-        || (cr !== undefined && cr !== '') || (lr !== undefined && lr !== '');
+        || (cr !== undefined && cr !== '') || (lr !== undefined && lr !== '') || (di !== undefined && di !== '');
       if (!hasAny) continue;
 
       await db.query(
         `INSERT INTO staff_weekly_attendance
-          (staff_id, week_start_date, working_days, leaves_taken, late_arrivals, leaves_clubbed_with_holiday,
+          (staff_id, week_start_date, working_days, leaves_taken, late_arrivals, discipline_issues, leaves_clubbed_with_holiday,
            punctuality_rating, dress_code_rating, overall_conduct_rating, lesson_prep_rating, entered_by)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
          ON DUPLICATE KEY UPDATE working_days=VALUES(working_days), leaves_taken=VALUES(leaves_taken),
-           late_arrivals=VALUES(late_arrivals), leaves_clubbed_with_holiday=VALUES(leaves_clubbed_with_holiday),
+           late_arrivals=VALUES(late_arrivals), discipline_issues=VALUES(discipline_issues),
+           leaves_clubbed_with_holiday=VALUES(leaves_clubbed_with_holiday),
            punctuality_rating=VALUES(punctuality_rating), dress_code_rating=VALUES(dress_code_rating),
            overall_conduct_rating=VALUES(overall_conduct_rating), lesson_prep_rating=VALUES(lesson_prep_rating),
            entered_by=VALUES(entered_by)`,
-        [s.id, mondayStr, wd !== '' && wd !== undefined ? wd : null, lt || 0, la || 0, lc || 0,
+        [s.id, mondayStr, wd !== '' && wd !== undefined ? wd : null, lt || 0, la || 0, di || 0, lc || 0,
          pr || null, dr || null, cr || null, lr || null, req.session.user.id]
       );
+      // Keep this month's stored review row in step with the sheet (a week counts toward the
+      // month of its Saturday — see WEEK_MONTH_SQL in utils/performanceCalc.js).
+      await syncMonthlyFromWeekly(db, s.id, addDays(mondayStr, 5).slice(0, 7) + '-01');
     }
     req.flash('success', "This week's staff attendance saved");
   } catch (err) {

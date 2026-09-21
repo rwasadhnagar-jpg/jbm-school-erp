@@ -139,35 +139,98 @@ async function computeStudentOutcomesAuto(db, staffId, monthDateStr) {
   }
 }
 
-// Auto-suggests Attendance % from the weekly staff-attendance summaries entered in Academic
-// Monitoring (routes/supervision.js, staff_weekly_attendance — a manual weekly total, not a daily
-// attendance system: working days, leaves taken, leaves clubbed with a holiday, all typed in by
-// admin/wing-incharge once a week). Unlike computeObservationAutoScores, this is NOT scoped to one
-// rater — attendance is a fact, not an opinion, so every rater (Principal/VP/Incharge) reviewing
-// the same teacher/month sees the same auto-filled number. A week is attributed to the month
-// containing its Monday (week_start_date), matching how the weekly screens already group weeks.
+// The school runs Monday-Saturday, and the whole weekly entry (attendance, late comings, discipline,
+// punctuality, dress code, conduct, lesson prep) is made once, on that week's Saturday. A blank
+// "working days" therefore means a normal 6-day week, not "unknown".
+const WEEK_WORKING_DAYS = 6;
+
+// A week belongs to the month its Saturday falls in (the day the entry is made), not the month of
+// its Monday — otherwise a week straddling month-end was counted wholly in the earlier month.
+const WEEK_MONTH_SQL = `DATE_FORMAT(DATE_ADD(week_start_date, INTERVAL 5 DAY), '%Y-%m') = DATE_FORMAT(?, '%Y-%m')`;
+
+// Auto-computes Attendance % (plus that month's late/discipline totals) from the weekly Saturday
+// entries in Academic Monitoring (routes/supervision.js, staff_weekly_attendance). Unlike
+// computeObservationAutoScores, this is NOT scoped to one rater — attendance is a fact, not an
+// opinion, so every rater (Principal/VP/Incharge) sees the same number.
 async function computeAttendanceAuto(db, staffId, monthDateStr) {
   try {
     const [rows] = await db.query(
-      `SELECT working_days, leaves_taken, late_arrivals, leaves_clubbed_with_holiday
+      `SELECT working_days, leaves_taken, late_arrivals, discipline_issues, leaves_clubbed_with_holiday
        FROM staff_weekly_attendance
-       WHERE staff_id = ? AND DATE_FORMAT(week_start_date, '%Y-%m') = DATE_FORMAT(?, '%Y-%m')`,
+       WHERE staff_id = ? AND ${WEEK_MONTH_SQL}`,
       [staffId, monthDateStr]
     );
     if (!rows.length) return null;
-    let totalWorking = 0, totalLeaves = 0, totalLate = 0, totalClubbed = 0, anyWorkingDays = false;
+    let totalWorking = 0, totalLeaves = 0, totalLate = 0, totalDiscipline = 0, totalClubbed = 0;
     for (const r of rows) {
-      if (r.working_days !== null) { totalWorking += Number(r.working_days); anyWorkingDays = true; }
+      totalWorking += r.working_days !== null && r.working_days !== undefined ? Number(r.working_days) : WEEK_WORKING_DAYS;
       totalLeaves += Number(r.leaves_taken) || 0;
       totalLate += Number(r.late_arrivals) || 0;
+      totalDiscipline += Number(r.discipline_issues) || 0;
       totalClubbed += Number(r.leaves_clubbed_with_holiday) || 0;
     }
-    const attendancePct = anyWorkingDays && totalWorking > 0
+    const attendancePct = totalWorking > 0
       ? Math.max(0, Math.min(100, Math.round(((totalWorking - totalLeaves) / totalWorking) * 1000) / 10))
       : null;
-    return { attendancePct, totalWorking, totalLeaves, totalLate, totalClubbed, weeksLogged: rows.length };
+    return { attendancePct, totalWorking, totalLeaves, totalLate, totalDiscipline, totalClubbed, weeksLogged: rows.length };
   } catch (e) {
     return null;
+  }
+}
+
+// Month's late-arrival and discipline counts = Saturday-sheet totals + memos issued that month
+// (routes/performance.js memo log). Memos used to bump the monthly counters directly, which would
+// be overwritten whenever the counters are recomputed from the weekly sheets, so they're folded
+// in here instead — one calculation, every screen agrees.
+async function computeMonthlyCountsAuto(db, staffId, monthDateStr) {
+  const att = await computeAttendanceAuto(db, staffId, monthDateStr);
+  let memoLate = 0, memoDiscipline = 0;
+  try {
+    const [rows] = await db.query(
+      `SELECT category, COUNT(*) cnt FROM performance_memos
+       WHERE staff_id = ? AND category IN ('Punctuality','Discipline')
+         AND DATE_FORMAT(memo_date, '%Y-%m') = DATE_FORMAT(?, '%Y-%m')
+       GROUP BY category`,
+      [staffId, monthDateStr]
+    );
+    rows.forEach(r => {
+      if (r.category === 'Punctuality') memoLate = Number(r.cnt);
+      if (r.category === 'Discipline') memoDiscipline = Number(r.cnt);
+    });
+  } catch (e) { /* no memo table yet — treat as none */ }
+  const weeklyLate = att ? att.totalLate : 0;
+  const weeklyDiscipline = att ? att.totalDiscipline : 0;
+  return {
+    late: weeklyLate + memoLate, weeklyLate, memoLate,
+    discipline: weeklyDiscipline + memoDiscipline, weeklyDiscipline, memoDiscipline,
+  };
+}
+
+// Pushes the Saturday-sheet-derived fields (attendance %, late, discipline, the 4 checklist
+// ratings) onto that staff/month's stored review row so Teacher Pulse, the annual summary and the
+// score entry never disagree. Only touches a row that already exists (it never invents a review),
+// and leaves a rating alone when no weekly value exists for it.
+async function syncMonthlyFromWeekly(db, staffId, monthDateStr) {
+  try {
+    const [att, wk, counts] = await Promise.all([
+      computeAttendanceAuto(db, staffId, monthDateStr),
+      computeWeeklyChecklistAuto(db, staffId, monthDateStr),
+      computeMonthlyCountsAuto(db, staffId, monthDateStr),
+    ]);
+    const w = wk || {};
+    await db.query(
+      `UPDATE performance_monthly_reviews SET
+         attendance_pct = COALESCE(?, attendance_pct), late_arrivals = ?, discipline_issues = ?,
+         punctuality_rating = COALESCE(?, punctuality_rating), dress_code_rating = COALESCE(?, dress_code_rating),
+         overall_conduct_rating = COALESCE(?, overall_conduct_rating), lesson_prep_rating = COALESCE(?, lesson_prep_rating)
+       WHERE staff_id = ? AND month_date = ?`,
+      [att ? att.attendancePct : null, counts.late, counts.discipline,
+       w.punctuality_rating != null ? w.punctuality_rating : null, w.dress_code_rating != null ? w.dress_code_rating : null,
+       w.overall_conduct_rating != null ? w.overall_conduct_rating : null, w.lesson_prep_rating != null ? w.lesson_prep_rating : null,
+       staffId, monthDateStr]
+    );
+  } catch (e) {
+    console.error('syncMonthlyFromWeekly failed:', e.message);
   }
 }
 
@@ -240,7 +303,7 @@ async function computeWeeklyChecklistAuto(db, staffId, monthDateStr) {
     const [rows] = await db.query(
       `SELECT punctuality_rating, dress_code_rating, overall_conduct_rating, lesson_prep_rating
        FROM staff_weekly_attendance
-       WHERE staff_id = ? AND DATE_FORMAT(week_start_date, '%Y-%m') = DATE_FORMAT(?, '%Y-%m')`,
+       WHERE staff_id = ? AND ${WEEK_MONTH_SQL}`,
       [staffId, monthDateStr]
     );
     if (!rows.length) return null;
@@ -342,7 +405,10 @@ module.exports = {
   monthScore,
   computeStudentOutcomesAuto,
   computeObservationAutoScores,
+  WEEK_WORKING_DAYS,
   computeAttendanceAuto,
+  computeMonthlyCountsAuto,
+  syncMonthlyFromWeekly,
   computeWeeklyChecklistAuto,
   computeAnnualSummary,
   proposedIncrement,

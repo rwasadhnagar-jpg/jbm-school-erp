@@ -24,29 +24,33 @@
   <div class="form-card">
     <div class="form-card-header">👩‍🏫 <%= staff.first_name %> <%= staff.last_name || '' %> <span style="font-weight:400;opacity:0.85">— <%= new Date(month).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) %></span></div>
     <div class="form-card-body">
+      <div class="widget-body" style="padding:0 0 10px;font-size:12px;color:#555">
+        🔒 Attendance, late arrivals and discipline (and the four ratings below) come from the
+        <a href="/supervision/attendance">Saturday Staff Attendance entry</a> — change them there, not here.
+      </div>
       <div class="form-grid">
         <div class="form-group">
-          <label>Attendance %</label>
-          <input type="number" step="0.1" min="0" max="100" class="form-control" name="attendance_pct"
-            value="<%= existing.attendance_pct != null ? existing.attendance_pct : (attendanceAuto && attendanceAuto.attendancePct != null ? attendanceAuto.attendancePct : '') %>">
-          <% if (existing.attendance_pct == null && attendanceAuto && attendanceAuto.attendancePct != null) { %>
-          <div style="font-size:10px;color:#777">(auto from <%= attendanceAuto.weeksLogged %> week<%= attendanceAuto.weeksLogged === 1 ? '' : 's' %> — <%= attendanceAuto.totalWorking %> working days, <%= attendanceAuto.totalLeaves %> leave<%= attendanceAuto.totalLeaves === 1 ? '' : 's' %>)</div>
-          <% } %>
-          <% if (attendanceAuto == null) { %><div style="font-size:10px;color:#999">no weekly attendance logged yet</div><% } %>
+          <label>Attendance % 🔒</label>
+          <input type="text" class="form-control" readonly style="background:#f3f0f8"
+            value="<%= attendanceAuto && attendanceAuto.attendancePct != null ? attendanceAuto.attendancePct : (existing.attendance_pct != null ? existing.attendance_pct : '—') %>">
+          <% if (attendanceAuto) { %>
+          <div style="font-size:10px;color:#777">from <%= attendanceAuto.weeksLogged %> Saturday entr<%= attendanceAuto.weeksLogged === 1 ? 'y' : 'ies' %> — <%= attendanceAuto.totalWorking %> working days, <%= attendanceAuto.totalLeaves %> leave<%= attendanceAuto.totalLeaves === 1 ? '' : 's' %></div>
+          <% } else { %><div style="font-size:10px;color:#999">no Saturday entries logged this month yet</div><% } %>
           <% if (attendanceAuto && attendanceAuto.totalClubbed > 0) { %>
           <div style="font-size:11px;color:#a15c00;background:#fff3cd;border-radius:4px;padding:2px 6px;margin-top:4px;display:inline-block">⚠️ <%= attendanceAuto.totalClubbed %> leave<%= attendanceAuto.totalClubbed === 1 ? '' : 's' %> clubbed with a holiday this month</div>
           <% } %>
         </div>
         <div class="form-group">
-          <label>Late Arrivals</label>
-          <input type="number" step="1" min="0" class="form-control" name="late_arrivals"
-            value="<%= existing.late_arrivals != null ? existing.late_arrivals : (attendanceAuto && attendanceAuto.totalLate != null ? attendanceAuto.totalLate : 0) %>">
-          <% if (existing.late_arrivals == null && attendanceAuto && attendanceAuto.totalLate != null) { %>
-          <div style="font-size:10px;color:#777">(auto from weekly attendance)</div>
-          <% } %>
+          <label>Late Arrivals 🔒</label>
+          <input type="text" class="form-control" readonly style="background:#f3f0f8" value="<%= countsAuto.late %>">
+          <div style="font-size:10px;color:#777"><%= countsAuto.weeklyLate %> from Saturday entries<%= countsAuto.memoLate ? ' + ' + countsAuto.memoLate + ' punctuality memo' + (countsAuto.memoLate === 1 ? '' : 's') : '' %></div>
         </div>
         <div class="form-group"><label>Parent Complaints</label><input type="number" step="1" min="0" class="form-control" name="parent_complaints" value="<%= existing.parent_complaints != null ? existing.parent_complaints : 0 %>"></div>
-        <div class="form-group"><label>Discipline Issues</label><input type="number" step="1" min="0" class="form-control" name="discipline_issues" value="<%= existing.discipline_issues != null ? existing.discipline_issues : 0 %>"></div>
+        <div class="form-group">
+          <label>Discipline Issues 🔒</label>
+          <input type="text" class="form-control" readonly style="background:#f3f0f8" value="<%= countsAuto.discipline %>">
+          <div style="font-size:10px;color:#777"><%= countsAuto.weeklyDiscipline %> from Saturday entries<%= countsAuto.memoDiscipline ? ' + ' + countsAuto.memoDiscipline + ' discipline memo' + (countsAuto.memoDiscipline === 1 ? '' : 's') : '' %></div>
+        </div>
       </div>
     </div>
   </div>
@@ -94,38 +98,21 @@
   </div>
 
   <div class="form-card" style="margin-top:16px">
-    <div class="form-card-header">📋 Weekly Checklist (0-10)</div>
+    <div class="form-card-header">📋 Saturday Checklist (0-10) 🔒</div>
     <% if (weeklyAuto) { %>
-    <div class="widget-body" style="padding:10px 16px 0;font-size:12px;color:#777">Pre-filled from this month's weekly Attendance entries — adjust any that don't look right.</div>
+    <div class="widget-body" style="padding:10px 16px 0;font-size:12px;color:#777">Average of this month's Saturday ratings (1-5 shown here ×2 as 0-10). Read-only — edit them on the <a href="/supervision/attendance">Saturday sheet</a>.</div>
     <% } else { %>
-    <div class="widget-body" style="padding:10px 16px 0;font-size:12px;color:#999">No weekly checklist entries logged yet this month.</div>
+    <div class="widget-body" style="padding:10px 16px 0;font-size:12px;color:#999">No Saturday ratings logged yet this month<%= existing.punctuality_rating != null || existing.dress_code_rating != null || existing.overall_conduct_rating != null || existing.lesson_prep_rating != null ? ' — showing the previously saved values' : '' %>.</div>
     <% } %>
     <div class="form-card-body">
       <div class="form-grid">
+        <% [['punctuality_rating', 'Punctuality'], ['dress_code_rating', 'Dress Code Compliance'], ['overall_conduct_rating', 'Overall Conduct'], ['lesson_prep_rating', 'Lesson Preparation']].forEach(function (f) {
+             const shown = weeklyAuto && weeklyAuto[f[0]] != null ? weeklyAuto[f[0]] : (existing[f[0]] != null ? existing[f[0]] : '—'); %>
         <div class="form-group">
-          <label>Punctuality</label>
-          <input type="number" step="0.1" min="0" max="10" class="form-control" name="punctuality_rating"
-            value="<%= existing.punctuality_rating != null ? existing.punctuality_rating : (weeklyAuto && weeklyAuto.punctuality_rating != null ? weeklyAuto.punctuality_rating : '') %>">
-          <% if (existing.punctuality_rating == null && weeklyAuto && weeklyAuto.punctuality_rating != null) { %><div style="font-size:10px;color:#777">(auto from weekly checklist)</div><% } %>
+          <label><%= f[1] %></label>
+          <input type="text" class="form-control" readonly style="background:#f3f0f8" value="<%= shown %>">
         </div>
-        <div class="form-group">
-          <label>Dress Code Compliance</label>
-          <input type="number" step="0.1" min="0" max="10" class="form-control" name="dress_code_rating"
-            value="<%= existing.dress_code_rating != null ? existing.dress_code_rating : (weeklyAuto && weeklyAuto.dress_code_rating != null ? weeklyAuto.dress_code_rating : '') %>">
-          <% if (existing.dress_code_rating == null && weeklyAuto && weeklyAuto.dress_code_rating != null) { %><div style="font-size:10px;color:#777">(auto from weekly checklist)</div><% } %>
-        </div>
-        <div class="form-group">
-          <label>Overall Conduct</label>
-          <input type="number" step="0.1" min="0" max="10" class="form-control" name="overall_conduct_rating"
-            value="<%= existing.overall_conduct_rating != null ? existing.overall_conduct_rating : (weeklyAuto && weeklyAuto.overall_conduct_rating != null ? weeklyAuto.overall_conduct_rating : '') %>">
-          <% if (existing.overall_conduct_rating == null && weeklyAuto && weeklyAuto.overall_conduct_rating != null) { %><div style="font-size:10px;color:#777">(auto from weekly checklist)</div><% } %>
-        </div>
-        <div class="form-group">
-          <label>Lesson Preparation</label>
-          <input type="number" step="0.1" min="0" max="10" class="form-control" name="lesson_prep_rating"
-            value="<%= existing.lesson_prep_rating != null ? existing.lesson_prep_rating : (weeklyAuto && weeklyAuto.lesson_prep_rating != null ? weeklyAuto.lesson_prep_rating : '') %>">
-          <% if (existing.lesson_prep_rating == null && weeklyAuto && weeklyAuto.lesson_prep_rating != null) { %><div style="font-size:10px;color:#777">(auto from weekly checklist)</div><% } %>
-        </div>
+        <% }) %>
       </div>
     </div>
   </div>

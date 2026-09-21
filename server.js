@@ -218,14 +218,21 @@ async function runWeeklyUpdateReminder() {
 }
 cron.schedule('0 8 * * 1', runWeeklyUpdateReminder, { timezone: 'Asia/Kolkata' });
 
-// 3rd of each month, 9 AM: remind each wing Incharge of staff in their own wing still missing
-// last month's performance review (only the Incharge enters these now — Principal/Admin just
-// review/edit, so they aren't nagged for "missing" entries the same way).
+// Last working day of each month (school runs Mon-Sat, so the last non-Sunday), 9 AM: remind each
+// wing Incharge of staff in their own wing still missing THIS month's performance review (only the
+// Incharge enters these now — Principal/Admin just review/edit, so they aren't nagged for "missing"
+// entries the same way). The Saturday sheets (attendance/discipline/ratings) are already in by
+// then; what's left for month-end is the parent/admin/co-curricular/PD/behaviour ratings.
+function isLastWorkingDayOfMonth(d) {
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  while (last.getDay() === 0) last.setDate(last.getDate() - 1); // skip Sunday
+  return d.getDate() === last.getDate();
+}
 async function runPerformanceReviewReminder() {
   try {
     const now = new Date();
-    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const prevMonthStr = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}-01`;
+    if (!isLastWorkingDayOfMonth(now)) return; // cron fires daily on the 28th-31st; only the last working day acts
+    const thisMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     const [incharges] = await db.query("SELECT id, wing FROM users WHERE role='incharge' AND is_active=1 AND wing IS NOT NULL");
     for (const inc of incharges) {
       const [[{ cnt: totalStaff }]] = await db.query(
@@ -239,16 +246,16 @@ async function runPerformanceReviewReminder() {
            OR r.homework_correction IS NOT NULL OR r.parent_comm IS NOT NULL OR r.admin_compliance IS NOT NULL
            OR r.cocurricular IS NOT NULL OR r.professional_dev IS NOT NULL OR r.behaviour_teamwork IS NOT NULL
            OR r.overall_holistic IS NOT NULL)`,
-        [prevMonthStr, inc.wing]
+        [thisMonthStr, inc.wing]
       );
       const missing = Number(totalStaff) - Number(row.cnt);
       if (missing > 0) {
         await notifications.sendPushToUser(inc.id, {
           title: 'Monthly Teacher Reviews Due',
-          body: `${missing} teacher(s) still need last month's review from you.`
+          body: `${missing} teacher(s) still need this month's review from you.`
         });
       }
     }
   } catch (e) { console.error('performance review reminder failed:', e.message); }
 }
-cron.schedule('0 9 3 * *', runPerformanceReviewReminder, { timezone: 'Asia/Kolkata' });
+cron.schedule('0 9 28-31 * *', runPerformanceReviewReminder, { timezone: 'Asia/Kolkata' });
