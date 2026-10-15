@@ -145,6 +145,11 @@ function wingMembershipClause(col, wingCol) {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
 
+    // Same wing-key merge as users/staff above, applied to observations — the 2026-09-15 migration
+    // missed this table, so pre-merge visits stayed tagged 'middle'/'secondary' and dropped out of
+    // every wing-scoped list and Teacher Pulse's per-wing figures.
+    await db.query("UPDATE supervision_observations SET wing='middle_secondary' WHERE wing IN ('middle','secondary')");
+
     await db.query(`CREATE TABLE IF NOT EXISTS supervision_observation_points (
       id INT AUTO_INCREMENT PRIMARY KEY,
       observation_id INT NOT NULL,
