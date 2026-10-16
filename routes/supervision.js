@@ -384,7 +384,16 @@ async function topUpRotationRows(column, eligibleIds, wing, weekStartStr, inchar
 async function ensureWeeklyAssignments(wing, weekStartStr) {
   if (!ALL_ROTATION_WINGS.includes(wing)) return;
 
-  const [[incharge]] = await db.query("SELECT id FROM users WHERE role='incharge' AND wing=? AND is_active=1 LIMIT 1", [wing]);
+  // The wing's own In-charge first; failing that, an In-charge who covers it as an additional wing
+  // (user_wings) — one person running two wings (e.g. Pre-Primary + Sr Secondary) has a single
+  // login whose primary wing can only be one of them.
+  const [[incharge]] = await db.query(
+    `SELECT u.id FROM users u
+     WHERE u.role='incharge' AND u.is_active=1
+       AND (u.wing=? OR EXISTS (SELECT 1 FROM user_wings uw WHERE uw.user_id=u.id AND uw.wing=?))
+     ORDER BY (u.wing=?) DESC, u.id LIMIT 1`,
+    [wing, wing, wing]
+  );
   if (!incharge) return; // no incharge assigned to this wing yet — nothing to schedule against
 
   if (SECTION_ROTATION_WINGS.includes(wing)) {
