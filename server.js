@@ -32,6 +32,23 @@ app.use(session({
 
 app.use(flash());
 
+// Sessions last 8 hours, so deactivating an In-charge (Manage In-charges) must also cut off anyone
+// already logged in. Checked for In-charges only; fails open on a DB error so a hiccup can't lock
+// everyone out.
+app.use(async (req, res, next) => {
+  const u = req.session && req.session.user;
+  if (!u || u.role !== 'incharge') return next();
+  try {
+    const [[row]] = await db.query('SELECT is_active FROM users WHERE id=?', [u.id]);
+    if (row && !row.is_active) {
+      return req.session.destroy(() => res.redirect('/login'));
+    }
+  } catch (err) {
+    console.error('active check failed:', err.message);
+  }
+  next();
+});
+
 // Global locals
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;

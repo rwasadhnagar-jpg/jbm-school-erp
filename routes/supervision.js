@@ -1196,6 +1196,60 @@ router.post('/incharges/:id/wing', requireAdmin, async (req, res) => {
   res.redirect('/supervision/incharges');
 });
 
+// Edit an In-charge login: name, email and (optionally) a new password. Wing changes stay on the
+// list screen. A blank password field keeps the existing password.
+router.get('/incharges/:id/edit', requireAdmin, async (req, res) => {
+  const [[inc]] = await db.query("SELECT id, name, email, wing, is_active FROM users WHERE id=? AND role='incharge'", [req.params.id]);
+  if (!inc) {
+    req.flash('error', 'In-charge not found');
+    return res.redirect('/supervision/incharges');
+  }
+  res.render('supervision/incharges-edit', { title: 'Edit In-charge Login', activePage: 'supervision', inc, WINGS });
+});
+
+router.post('/incharges/:id/edit', requireAdmin, async (req, res) => {
+  try {
+    const name = (req.body.name || '').trim();
+    const email = (req.body.email || '').trim();
+    const password = req.body.password || '';
+    if (!name || !email) throw new Error('Name and email are required');
+    if (password && password.length < 6) throw new Error('Password must be at least 6 characters');
+    const [[inc]] = await db.query("SELECT id FROM users WHERE id=? AND role='incharge'", [req.params.id]);
+    if (!inc) throw new Error('In-charge not found');
+    if (password) {
+      const hash = await bcrypt.hash(password, 10);
+      await db.query('UPDATE users SET name=?, email=?, password=? WHERE id=?', [name, email, hash, req.params.id]);
+    } else {
+      await db.query('UPDATE users SET name=?, email=? WHERE id=?', [name, email, req.params.id]);
+    }
+    req.flash('success', `${name} updated${password ? ' (password changed)' : ''}`);
+    res.redirect('/supervision/incharges');
+  } catch (err) {
+    console.error(err);
+    req.flash('error', err.code === 'ER_DUP_ENTRY' ? 'That email is already used by another login' : 'Failed to update: ' + err.message);
+    res.redirect(`/supervision/incharges/${req.params.id}/edit`);
+  }
+});
+
+// Activate / deactivate. A deactivated In-charge can't log in, and is signed out on their next
+// request (see the active check in server.js). Their pending rotation visits stay assigned to
+// them — an admin can move those from the Weekly Rotation screen.
+router.post('/incharges/:id/toggle', requireAdmin, async (req, res) => {
+  try {
+    const [[inc]] = await db.query("SELECT id, name, is_active FROM users WHERE id=? AND role='incharge'", [req.params.id]);
+    if (!inc) throw new Error('In-charge not found');
+    const next = inc.is_active ? 0 : 1;
+    await db.query('UPDATE users SET is_active=? WHERE id=?', [next, inc.id]);
+    req.flash('success', next
+      ? `${inc.name} activated`
+      : `${inc.name} deactivated — they can no longer log in. Any pending visits assigned to them can be reassigned from Weekly Rotation.`);
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Failed to update status: ' + err.message);
+  }
+  res.redirect('/supervision/incharges');
+});
+
 // === Cross-wing teachers (admin/principal) ===
 // Most teachers belong to exactly one wing (staff.wing, the "primary" assignment managed via the
 // Attendance screen). Some subject specialists also teach a handful of periods into a second wing

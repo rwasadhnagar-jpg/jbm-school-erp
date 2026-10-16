@@ -12,7 +12,7 @@
 <div class="table-container">
   <div class="table-header"><h3>In-charge Logins (<%= incharges.length %>)</h3></div>
   <table>
-    <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Primary Wing</th><th>Additional Wings</th><th>Status</th></tr></thead>
+    <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Primary Wing</th><th>Additional Wings</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody>
       <% if (incharges.length) { incharges.forEach(function(inc, i) { %>
       <tr>
@@ -49,9 +49,17 @@
           </div>
         </td>
         <td><span class="badge <%= inc.is_active ? 'badge-green' : 'badge-red' %>"><%= inc.is_active ? 'Active' : 'Inactive' %></span></td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <a href="/supervision/incharges/<%= inc.id %>/edit" class="btn btn-outline-purple btn-sm">✏️ Edit</a>
+            <form method="POST" action="/supervision/incharges/<%= inc.id %>/toggle" onsubmit="return confirm('<%= inc.is_active ? 'Deactivate this login? They will not be able to log in.' : 'Activate this login again?' %>')">
+              <button type="submit" class="btn btn-sm <%= inc.is_active ? 'btn-outline-purple' : 'btn-purple' %>"><%= inc.is_active ? '⏸ Deactivate' : '▶ Activate' %></button>
+            </form>
+          </div>
+        </td>
       </tr>
       <% }) } else { %>
-        <tr><td colspan="6" class="no-data">No in-charge logins yet — add one per wing to start collecting weekly reports.</td></tr>
+        <tr><td colspan="7" class="no-data">No in-charge logins yet — add one per wing to start collecting weekly reports.</td></tr>
       <% } %>
     </tbody>
   </table>
